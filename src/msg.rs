@@ -1,5 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Uint128;
+use cw20::Cw20ReceiveMsg;
 use cw_denom::UncheckedDenom;
 
 #[cw_serde]
@@ -7,7 +8,7 @@ pub struct InstantiateMsg {
     pub owner: String,
     pub accepted: Vec<PossibleShit>,
     pub cutoff: Uint128, // desired value to be bootstrapped. Once reached, no more deposits are possible
-    pub shitmos: String, // SHITMOS token address 
+    pub shitmos: String, // SHITMOS token address
 }
 
 #[cw_serde]
@@ -20,8 +21,15 @@ pub struct PossibleShit {
 pub enum ExecuteMsg {
     /// Entry point to participate in shit-strap
     ShitStrap { shit: AssetUnchecked },
-    /// Admin function to withdraw assets sent during shit-strap
-    ScoopDaPoop {},
+    /// Admin function to set full-of-shit status to on
+    Flush {},
+    /// Cw20 Entry Point
+    Receive(Cw20ReceiveMsg),
+}
+
+#[cw_serde]
+pub enum ReceiveMsg {
+    ShitStrap { shit_strapper: String },
 }
 
 #[cw_serde]
@@ -29,7 +37,7 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     /// Returns max possible deposit value for a shit-strap instance
     #[returns(Uint128)]
-    Cutoff {}, 
+    Cutoff {},
 }
 
 #[cw_serde]
