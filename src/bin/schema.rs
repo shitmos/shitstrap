@@ -1,6 +1,6 @@
 use cosmwasm_schema::write_api;
 
-use shitstrap::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use cw_shit_strap::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 fn main() {
     write_api! {
