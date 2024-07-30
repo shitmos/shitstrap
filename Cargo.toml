@@ -41,6 +41,7 @@ cosmwasm-std = { version = "1.5.2", features = [
 cw-storage-plus = "1.2.0"
 cw2 = "1.1.2"
 cw20 = "1.1.2"
+cw20-base = "1.1.2"
 cw-orch = "0.22.2"
 cw-denom = "2.4.0"
 schemars = "0.8.16"
