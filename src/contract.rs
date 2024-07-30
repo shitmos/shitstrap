@@ -200,4 +200,10 @@ fn shitstrap_dao(
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+
+    #[test]
+    pub fn test_init() {
+
+    }
+}
