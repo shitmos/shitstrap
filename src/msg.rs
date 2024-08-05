@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::Uint128;
+use cosmwasm_std::{Decimal, Uint128};
 use cw20::Cw20ReceiveMsg;
 use cw_denom::UncheckedDenom;
 
@@ -14,7 +14,7 @@ pub struct InstantiateMsg {
 #[cw_serde]
 pub struct PossibleShit {
     pub token: UncheckedDenom,
-    pub shit_rate: Uint128, // # of tokens needed to recieve 1 SHITMOS
+    pub shit_rate: Decimal, // # of tokens needed to recieve 1 SHITMOS
 }
 
 #[cw_serde]
@@ -25,6 +25,8 @@ pub enum ExecuteMsg {
     Flush {},
     /// Cw20 Entry Point
     Receive(Cw20ReceiveMsg),
+    /// Only addr that sent shit-strap into being full of shit can call this function to claim any excess funds.
+    RefundShitter{}
 }
 
 #[cw_serde]
@@ -38,7 +40,17 @@ pub enum QueryMsg {
     /// Returns max possible deposit value for a shit-strap instance
     #[returns(Uint128)]
     Cutoff {},
+    #[returns(Uint128)]
+    /// Current amount of shit value that has been deposited in the shit-strap.
+    /// Can be used to calculate how much more is needed for a full-of-shit status.
+    ShitPile {},
+    #[returns(bool)]
+    FullOfShit {},
+    #[returns(Option<Decimal>)]
+    ShitRate{asset: String,}
+
 }
+
 
 #[cw_serde]
 pub struct AssetUnchecked {
