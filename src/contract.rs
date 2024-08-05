@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    coins, from_json, to_json_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Empty, Env,
-    MessageInfo, Response, StdError, StdResult, Uint128,
+    coins, from_json, to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Empty,
+    Env, Fraction, MessageInfo, Response, StdError, StdResult, Uint128,
 };
 use cw2::set_contract_version;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
@@ -10,7 +10,7 @@ use cw_denom::{CheckedDenom, UncheckedDenom};
 
 use crate::error::ContractError;
 use crate::msg::{AssetUnchecked, ExecuteMsg, InstantiateMsg, QueryMsg, ReceiveMsg};
-use crate::state::{Config, CONFIG, CURRENT_SHITSTRAP_VALUE};
+use crate::state::{Config, CONFIG, CURRENT_SHITSTRAP_VALUE, REFUND_SHIT};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:cw-shit-strap";
@@ -45,6 +45,16 @@ pub fn instantiate(
     Ok(Response::new())
 }
 
+fn refund_shitter(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+    let mut msg = vec![];
+    if let Some(refund) = REFUND_SHIT.may_load(deps.storage, info.sender)? {
+        msg.push(refund);
+        REFUND_SHIT.clear(deps.storage);
+    } else {
+        return Err(ContractError::FullOfShit {});
+    }
+    Ok(Response::new().add_messages(msg))
+}
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
@@ -53,9 +63,10 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::ShitStrap { shit } => execute_shit_strap(deps, shit, info.sender),
+        ExecuteMsg::ShitStrap { shit } => execute_shit_strap(deps, info.funds, shit, info.sender),
         ExecuteMsg::Flush {} => execute_flush(deps, info.sender),
         ExecuteMsg::Receive(cw20_msg) => receive_cw20_message(deps, info, cw20_msg),
+        ExecuteMsg::RefundShitter {} => refund_shitter(deps, info),
     }
 }
 
@@ -63,12 +74,40 @@ pub fn execute(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Cutoff {} => to_json_binary(&CONFIG.load(deps.storage)?.cutoff),
+        QueryMsg::ShitPile {} => to_json_binary(&CURRENT_SHITSTRAP_VALUE.load(deps.storage)?),
+        QueryMsg::FullOfShit {} => to_json_binary(&CONFIG.load(deps.storage)?.full_of_shit),
+        QueryMsg::ShitRate { asset } => to_json_binary(
+            &CONFIG
+                .load(deps.storage)?
+                .accepted
+                .into_iter()
+                .map(|c| match c.token {
+                    UncheckedDenom::Native(n) => {
+                        if n == asset.clone() {
+                            Some(c.shit_rate)
+                        } else {
+                            None
+                        }
+                    }
+                    UncheckedDenom::Cw20(cw) => {
+                        if cw == asset.clone() {
+                            Some(c.shit_rate)
+                        } else {
+                            None
+                        }
+                    }
+                })
+                .into_iter()
+                .flatten()
+                .next(),
+        ),
     }
 }
 
 /// Entry point to particpate in shitstrap
 pub fn execute_shit_strap(
     deps: DepsMut,
+    sent_assets: Vec<Coin>,
     shit: AssetUnchecked,
     sender: Addr,
 ) -> Result<Response, ContractError> {
@@ -87,22 +126,40 @@ pub fn execute_shit_strap(
         .into_iter()
         .find(|c| c.token == shit.denom)
     {
+        match matched.token.clone() {
+            UncheckedDenom::Native(t) => {
+                // ensure shit specified has been sent
+                if !sent_assets
+                    .into_iter()
+                    .find(|c| c.denom == t)
+                    .is_some_and(|c| c.amount == shit.amount)
+                {
+                    return Err(ContractError::DidntSendShit {});
+                }
+            }
+            UncheckedDenom::Cw20(_) => {}
+        }
         // defines conversion rate for accepted shit to SHITMOS
-        let mut shit_value = matched.shit_rate * shit.amount;
+        let mut shit_value = shit.amount * matched.shit_rate;
         let received_denom = matched.clone().token.into_checked(deps.as_ref())?;
 
         // if new value is greater than cutoff,
         // define value shit-strapper recieves as value that reaches cutoff limit.
         // any excess funds sent are returned.
         let new_val = shit_value + current_shit_value.clone();
-        let cutoff = CONFIG.load(deps.storage)?.cutoff;
+        let cutoff = config.cutoff.clone();
 
-        if new_val.clone() > cutoff.clone() {
+        if new_val.clone() >= cutoff.clone() {
             // new_sv = sv + current - cutoff
             // return assets = sv - new_sv / shit_rate
             let old_shit_value = shit_value;
-            shit_value = new_val.clone() - cutoff.clone();
-            let shit_2_return = (old_shit_value - shit_value) / matched.shit_rate;
+            println!("old_shit_value: {:#?}", old_shit_value);
+            // gets the amount of tokens sent after cutoff limit
+            let cutoff_shit_value = new_val.clone() - cutoff.clone();
+
+            println!("cutoff_shit_value: {:#?}", shit_value);
+            let shit_2_return: Uint128 = cutoff_shit_value * matched.shit_rate.inv().expect("ahh");
+            println!("shit_2_return: {:#?}", shit_2_return);
 
             // send new token amount to admin
             let shitstrap_dao = shitstrap_dao(received_denom.clone(), sender.clone(), shit_value)?;
@@ -124,7 +181,8 @@ pub fn execute_shit_strap(
                 }),
             };
             // push msg to response
-            msgs.push(msg);
+            REFUND_SHIT.save(deps.storage, sender.clone(), &msg)?;
+            println!("REFUND_SHIT msg: {:#?}", msg);
 
             // shit-strap is now complete.
             config.full_of_shit = true;
@@ -136,6 +194,7 @@ pub fn execute_shit_strap(
             amount: coins(shit_value.into(), config.shitmos_addr),
         });
 
+        CURRENT_SHITSTRAP_VALUE.save(deps.storage, &new_val)?;
         // push msg to response
         msgs.push(send_shitmos)
     } else {
@@ -167,6 +226,7 @@ fn receive_cw20_message(
             let sender = deps.api.addr_validate(&shit_strapper)?;
             execute_shit_strap(
                 deps,
+                info.funds,
                 AssetUnchecked {
                     denom: UncheckedDenom::Cw20(info.sender.to_string()),
                     amount: msg.amount,
@@ -203,7 +263,5 @@ fn shitstrap_dao(
 mod tests {
 
     #[test]
-    pub fn test_init() {
-
-    }
+    pub fn test_init() {}
 }
