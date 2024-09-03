@@ -15,4 +15,4 @@ pub struct Config {
 
 pub const CONFIG: Item<Config> = Item::new("s");
 pub const CURRENT_SHITSTRAP_VALUE: Item<Uint128> = Item::new("h");
-pub const REFUND_SHIT: Map<(Addr), CosmosMsg> = Map::new("i");
+pub const REFUND_SHIT: Map<Addr, CosmosMsg> = Map::new("i");

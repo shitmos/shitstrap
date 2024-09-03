@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    coins, from_json, to_json_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, Fraction,
-    MessageInfo, Response, StdError, StdResult, Uint128,
+    coins, from_json, to_json_binary, Addr, Binary, CosmosMsg, Decimal, Deps, DepsMut, Empty, Env,
+    Fraction, MessageInfo, Response, StdError, StdResult, Uint128,
 };
 use cw2::set_contract_version;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
@@ -144,7 +144,7 @@ pub fn execute_shit_strap(
             }
         }
         // defines conversion rate for accepted shit to SHITMOS
-        let shit_value = shit.amount * matched.shit_rate;
+        let shit_value = shit.amount * Decimal::percent(matched.shit_rate);
         let received_denom = matched.clone().token.into_checked(deps.as_ref())?;
 
         // if new value is greater than cutoff,
@@ -159,7 +159,8 @@ pub fn execute_shit_strap(
             // gets the amount of tokens sent after cutoff limit
             let cutoff_shit_value = new_val.clone() - cutoff.clone();
 
-            let shit_2_return: Uint128 = cutoff_shit_value * matched.shit_rate.inv().expect("ahh");
+            let shit_2_return: Uint128 =
+                cutoff_shit_value * Decimal::percent(matched.shit_rate).inv().expect("ahh");
 
             // send new token amount to admin
             let shitstrap_dao =

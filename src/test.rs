@@ -191,10 +191,7 @@ impl ShitSuite {
 #[test]
 fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
     // create default testing suite
-    let mut shit = default_init(
-        vec![PossibleShit::native_denom("uatom", Decimal::one())],
-        222u128,
-    );
+    let mut shit = default_init(vec![PossibleShit::native_denom("uatom", 100u64)], 222u128);
     // deposit 1 less than max
     let first_deposit = 221u128;
     let shitstrap = shit.shitstrap.clone();
@@ -265,13 +262,13 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
 
     // confirm new balance of shitstrap
     let balance = shit.app.wrap().query_balance(shitstrap.clone(), "uatom")?;
-    let shit_rate: Option<Decimal> = shit.app.wrap().query_wasm_smart(
+    let shit_rate: Option<u64> = shit.app.wrap().query_wasm_smart(
         shitstrap.clone(),
         &crate::msg::QueryMsg::ShitRate {
             asset: "uatom".to_string(),
         },
     )?;
-    let calculated = balance.amount * shit_rate.unwrap();
+    let calculated = balance.amount * Decimal::percent(shit_rate.unwrap());
     assert_eq!(calculated, Uint128::from(first_deposit));
 
     // shitstrap reaches limit
@@ -334,8 +331,8 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
 fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Error> {
     // create testing suite
     let first_deposit = 100u128;
-    let cw20_shit_ratio = Decimal::percent(64);
-    let atom_shit_ratio = Decimal::percent(36);
+    let cw20_shit_ratio = 64u64;
+    let atom_shit_ratio = 36u64;
 
     let mut shit = default_init(
         vec![
@@ -418,7 +415,10 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
         .app
         .wrap()
         .query_wasm_smart(shitstrap.clone(), &crate::msg::QueryMsg::ShitPile {})?;
-    assert_eq!(res, Uint128::new(first_deposit) * atom_shit_ratio);
+    assert_eq!(
+        res,
+        Uint128::new(first_deposit) * Decimal::percent(atom_shit_ratio)
+    );
     // confirm funds made it to shitter
     let res = shit.app.wrap().query_all_balances(SHITTER1)?;
     assert_eq!(
@@ -426,7 +426,7 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
         vec![
             coin(DEFAULT_BALANCE - first_deposit, "uatom"),
             coin(
-                (Uint128::new(first_deposit) * atom_shit_ratio).u128(),
+                (Uint128::new(first_deposit) * Decimal::percent(atom_shit_ratio)).u128(),
                 "ushit"
             )
         ]
@@ -441,8 +441,8 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
         .query_wasm_smart(shitstrap.clone(), &crate::msg::QueryMsg::ShitPile {})?;
 
     // the expected shit_strapped, after 2 participants
-    let expected = (Uint128::new(first_deposit) * cw20_shit_ratio)
-        + (Uint128::new(first_deposit) * atom_shit_ratio);
+    let expected = (Uint128::new(first_deposit) * Decimal::percent(cw20_shit_ratio))
+        + (Uint128::new(first_deposit) * Decimal::percent(atom_shit_ratio));
 
     assert_eq!(res, expected);
 
@@ -452,7 +452,7 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
         res,
         vec![
             coin(
-                (Uint128::new(first_deposit) * cw20_shit_ratio).u128(),
+                (Uint128::new(first_deposit) * Decimal::percent(cw20_shit_ratio)).u128(),
                 "ushit"
             ),
             coin(DEFAULT_BALANCE, "usilk"), // has full balance of non accepted token
@@ -466,7 +466,7 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
 #[test]
 fn test_cw20_receive() -> anyhow::Result<(), Error> {
     let mut shit = default_init(
-        vec![PossibleShit::native_cw20(DEFAULT_CW20, Decimal::one())],
+        vec![PossibleShit::native_cw20(DEFAULT_CW20, 100u64)],
         222u128,
     );
 

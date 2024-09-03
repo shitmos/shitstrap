@@ -18,7 +18,7 @@ pub struct InstantiateMsg {
 #[cw_serde]
 pub struct PossibleShit {
     pub token: UncheckedDenom,
-    pub shit_rate: Decimal, // # of tokens needed to recieve 1 SHITMOS
+    pub shit_rate: u64, // # of tokens needed to recieve 1 SHITMOS
 }
 
 #[cw_serde]
@@ -54,7 +54,7 @@ pub enum QueryMsg {
     /// Query if the shit strap contract is no longer active
     FullOfShit {},
     /// Query the shit conversation ratio for a given asset
-    #[returns(Option<Decimal>)]
+    #[returns(Option<u64>)]
     ShitRate{asset: String,}
 
 }
@@ -77,13 +77,13 @@ impl AssetUnchecked {
 }
 
 impl PossibleShit {
-    pub fn native_denom(native_denom: &str, shit_rate: Decimal) -> Self {
+    pub fn native_denom(native_denom: &str, shit_rate: u64) -> Self {
         PossibleShit {
             token: UncheckedDenom::Native(native_denom.into()),
             shit_rate,
         }
     }
-    pub fn native_cw20(native_coin: &str, shit_rate: Decimal) -> Self {
+    pub fn native_cw20(native_coin: &str, shit_rate: u64) -> Self {
         PossibleShit {
             token: UncheckedDenom::Cw20(native_coin.into()),
             shit_rate,
