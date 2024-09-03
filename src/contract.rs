@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    coins, from_json, to_json_binary, Addr, Binary, CosmosMsg, Decimal, Deps, DepsMut, Empty, Env,
-    Fraction, MessageInfo, Response, StdError, StdResult, Uint128,
+    coins, from_json, to_json_binary, Addr, Attribute, Binary, CosmosMsg, Decimal, Deps, DepsMut,
+    Empty, Env, Fraction, MessageInfo, Response, StdError, StdResult, Uint128,
 };
 use cw2::set_contract_version;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
@@ -10,7 +10,9 @@ use cw_denom::{CheckedDenom, UncheckedDenom};
 
 use crate::error::ContractError;
 use crate::msg::{AssetUnchecked, ExecuteMsg, InstantiateMsg, QueryMsg, ReceiveMsg};
-use crate::state::{Config, ATOMINC_DECIMALS, CONFIG, CURRENT_SHITSTRAP_VALUE, REFUND_SHIT};
+use crate::state::{
+    Config, ATOMINC_DECIMALS, CONFIG, CURRENT_SHITSTRAP_VALUE, REFUND_SHIT, SHITSTRAP_STATE,
+};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:cw-shit-strap";
@@ -24,14 +26,14 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    // set admin
-    let admin = deps.api.addr_validate(&msg.owner)?;
+    // set owner
+    let owner = deps.api.addr_validate(&msg.owner)?;
 
     // save contract instance config
     CONFIG.save(
         deps.storage,
         &Config {
-            admin,
+            owner,
             accepted: msg.accepted,
             cutoff: msg.cutoff * Uint128::from(1_000_000u64), // moves 6 decimal places for minimal denoms
             shitmos_addr: msg.shitmos,
@@ -112,6 +114,7 @@ pub fn execute_shit_strap(
     shit_strapper: Addr,
 ) -> Result<Response, ContractError> {
     let mut msgs = vec![];
+    let mut attrs = vec![];
     let mut config = CONFIG.load(deps.storage)?;
     let current_shit_value = CURRENT_SHITSTRAP_VALUE.load(deps.storage)?;
 
@@ -147,9 +150,8 @@ pub fn execute_shit_strap(
         let shit_value = shit.amount * Decimal::from_atomics(matched.shit_rate, ATOMINC_DECIMALS)?;
         let received_denom = matched.clone().token.into_checked(deps.as_ref())?;
 
-        // if new value is greater than cutoff,
-        // define value shit-strapper recieves as value that reaches cutoff limit.
-        // any excess funds sent are returned.
+        // if new_val > or = cutoff,
+        // any excess funds sent are able to be claimed by sender.
         let new_val = shit_value + current_shit_value.clone();
         let cutoff = config.cutoff.clone();
 
@@ -157,30 +159,56 @@ pub fn execute_shit_strap(
             // new_sv = sv + current - cutoff
             // return assets = sv - new_sv / shit_rate
             // gets the amount of tokens sent after cutoff limit
-            let cutoff_shit_value = new_val.clone() - cutoff.clone();
+            let overflow = new_val.clone() - cutoff.clone();
 
             // reverse the shit rate calculation to get the exact # of tokens to return
-            let shit_2_return: Uint128 = cutoff_shit_value
+            let return_to_shitter_amnt: Uint128 = overflow
                 * Decimal::from_atomics(matched.shit_rate, ATOMINC_DECIMALS)?
                     .inv()
                     .expect("ahh");
 
-            // send new token amount to admin
-            let shitstrap_dao =
-                shitstrap_dao(received_denom.clone(), shit_strapper.clone(), shit_value)?;
-            msgs.push(shitstrap_dao);
+            // for each token sent in shitstrap, transfer to dao
+            for owned in
+                SHITSTRAP_STATE.range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
+            {
+                let mut _amnt = 0u128;
+                let tokens = owned?;
+
+                if tokens.0 == received_denom.to_string() {
+                    _amnt = (tokens.1 + return_to_shitter_amnt).u128()
+                } else {
+                    _amnt = tokens.1.u128()
+                }
+                // send new token amount to admin
+                let shitstrap_dao = shitstrap_dao(
+                    received_denom.clone(),
+                    tokens.0,
+                    _amnt.into(),
+                    config.owner.clone(),
+                )?;
+                
+                // msg attributes for indexing
+                let attr1 = Attribute::new("dao_shitstrap_amount", shit_value.to_string());
+                let attr2 = Attribute::new("dao_shitstrap_recieved", received_denom.to_string());
+                attrs.extend(vec![attr1, attr2]);
+                
+                // println!("overflow: {:#?}", overflow);
+                // println!("return_to_shitter_amnt: {:#?}", return_to_shitter_amnt);
+                // println!("shitstrap_dao: {:#?}", shitstrap_dao);
+                msgs.push(shitstrap_dao);
+            }
 
             // form return msgs
             let msg: CosmosMsg = match received_denom.clone() {
                 CheckedDenom::Native(shit) => CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
                     to_address: shit_strapper.to_string(),
-                    amount: coins(shit_2_return.into(), shit),
+                    amount: coins(return_to_shitter_amnt.into(), shit),
                 }),
                 CheckedDenom::Cw20(shit) => CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
                     contract_addr: shit.to_string(),
                     msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
                         recipient: shit_strapper.to_string(),
-                        amount: shit_2_return,
+                        amount: return_to_shitter_amnt,
                     })?,
                     funds: vec![],
                 }),
@@ -192,25 +220,35 @@ pub fn execute_shit_strap(
             config.full_of_shit = true;
             CONFIG.save(deps.storage, &config)?;
         }
+
         // form SHITMOS transfer msg.
         let send_shitmos: CosmosMsg<Empty> = CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
             to_address: shit_strapper.to_string(),
             amount: coins(shit_value.into(), config.shitmos_addr),
         });
 
+        // update internal shitstrap value, & save asset-specific shit strap state.
+
+        let add_count = |prev: Option<Uint128>| -> StdResult<Uint128> {
+            prev.unwrap_or_default()
+                .checked_add(Uint128::new(shit.amount.u128()))
+                .map_err(StdError::overflow)
+        };
         CURRENT_SHITSTRAP_VALUE.save(deps.storage, &new_val)?;
+        SHITSTRAP_STATE.update(deps.storage, received_denom.to_string(), &add_count)?;
+
         // push msg to response
         msgs.push(send_shitmos)
     } else {
         return Err(ContractError::WrongShit {});
     }
 
-    Ok(Response::new().add_messages(msgs))
+    Ok(Response::new().add_messages(msgs).add_attributes(attrs))
 }
 
 pub fn execute_flush(deps: DepsMut, sender: Addr) -> Result<Response, ContractError> {
     // only owner can call this
-    if sender != CONFIG.load(deps.storage)?.admin {
+    if sender != CONFIG.load(deps.storage)?.owner {
         return Err(ContractError::ShittyAuthorization {});
     }
     let mut config = CONFIG.load(deps.storage)?;
@@ -246,19 +284,20 @@ fn receive_cw20_message(
 
 fn shitstrap_dao(
     recieved: CheckedDenom,
-    sender: Addr,
+    addr: String,
     amount: Uint128,
+    dao: Addr,
 ) -> Result<CosmosMsg, StdError> {
     // send tokens to admin
     match recieved {
-        CheckedDenom::Native(shiet) => Ok(CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
-            to_address: sender.to_string(),
-            amount: coins(amount.into(), shiet),
+        CheckedDenom::Native(_) => Ok(CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
+            to_address: dao.to_string(),
+            amount: coins(amount.into(), addr),
         })),
-        CheckedDenom::Cw20(shiet) => Ok(CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
-            contract_addr: shiet.to_string(),
+        CheckedDenom::Cw20(_) => Ok(CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
+            contract_addr: addr.to_string(),
             msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
-                recipient: sender.to_string(),
+                recipient: dao.to_string(),
                 amount: amount.into(),
             })?,
             funds: vec![],

@@ -193,7 +193,7 @@ impl ShitSuite {
 fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
     // create default testing suite
     let mut shit = default_init(
-        vec![PossibleShit::native_denom("uatom", 1000000u128)],
+        vec![PossibleShit::native_denom("uatom", 1_000_000u128)], // 1:1 ratio
         222u128,
     );
     // deposit 1 less than max
@@ -235,11 +235,12 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
         .unwrap_err();
     assert_eq!(ContractError::DidntSendShit {}, err.downcast().unwrap());
 
-    // error with correct token, but less sent then specified
+    // move forward in time
     let mut block = shit.app.block_info();
     block.height += 1;
     shit.app.set_block(block);
 
+    // error with correct token, but less sent then specified
     shit.app
         .execute_contract(
             Addr::unchecked(SHITTER1.to_string()),
@@ -251,11 +252,15 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
         )
         .unwrap_err();
 
-    // participate in shitstrap with correct token
+    // move forward in time
     let mut block = shit.app.block_info();
     block.height += 1;
     shit.app.set_block(block);
 
+    let owner_bal = shit.app.wrap().query_all_balances(OWNER)?[0].clone();
+    println!("{:#?}", owner_bal);
+
+    // participate in shitstrap with correct token
     shit.participate_native(SHITTER1, 221_000_000, "uatom")?;
 
     // confirm shit_rate is calculated correctly
@@ -273,6 +278,7 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
             asset: "uatom".to_string(),
         },
     )?;
+    // calulate expected
     let calculated = balance.amount * Decimal::from_atomics(shit_rate.unwrap(), ATOMINC_DECIMALS)?;
     assert_eq!(calculated, Uint128::from(first_deposit));
 
@@ -281,11 +287,12 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
         Addr::unchecked(SHITTER1.to_string()),
         shitstrap.clone(),
         &crate::msg::ExecuteMsg::ShitStrap {
-            shit: AssetUnchecked::from_native("uatom", 2000000u128),
+            shit: AssetUnchecked::from_native("uatom", 2_000_000u128),
         },
         &vec![coin(2000000u128, "uatom")],
     )?;
 
+    // move forward in time
     let mut block = shit.app.block_info();
     block.height += 1;
     shit.app.set_block(block);
@@ -297,8 +304,9 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
         .query_wasm_smart(shit.shitstrap, &crate::msg::QueryMsg::FullOfShit {})?;
     assert_eq!(res, true);
 
+    // confirm balance
     let balance = shit.app.wrap().query_balance(SHITTER1, "uatom")?;
-    assert_eq!(balance.amount, Uint128::from(779_000_000u128));
+    assert_eq!(balance.amount, Uint128::from(777_000_000u128));
 
     // no more shitstrapping can commence
     let err = shit
@@ -322,12 +330,17 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
         &[],
     )?;
 
+    // move forward in time
     let mut block = shit.app.block_info();
     block.height += 1;
     shit.app.set_block(block);
 
+    // should have 1 extra token sent back
     let balance = shit.app.wrap().query_balance(SHITTER1, "uatom")?;
-    assert_eq!(balance.amount, Uint128::from(780_000_000u128));
+    assert_eq!(balance.amount, Uint128::from(778_000_000u128));
+    // owner should have
+    let owner_bal = shit.app.wrap().query_all_balances(OWNER)?[0].clone();
+    println!("{:#?}", owner_bal);
 
     Ok(())
 }
@@ -441,7 +454,7 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
 
     // user 2 funds with coin. should reflect 50% shit weight of native
     shit.participate_cw20(SHITTER2, 100_000_000, "contract0")?;
-    
+
     // confirm shit_rate is calculated correctly
     let res: Uint128 = shit
         .app
@@ -449,7 +462,8 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
         .query_wasm_smart(shitstrap.clone(), &crate::msg::QueryMsg::ShitPile {})?;
 
     // the expected shit_strapped, after 2 participants
-    let expected = (Uint128::new(first_deposit) * Decimal::from_atomics(cw20_shit_ratio, ATOMINC_DECIMALS)?)
+    let expected = (Uint128::new(first_deposit)
+        * Decimal::from_atomics(cw20_shit_ratio, ATOMINC_DECIMALS)?)
         + (Uint128::new(first_deposit) * Decimal::from_atomics(atom_shit_ratio, ATOMINC_DECIMALS)?);
 
     assert_eq!(res, expected);
@@ -460,7 +474,9 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
         res,
         vec![
             coin(
-                (Uint128::new(first_deposit) * Decimal::from_atomics(cw20_shit_ratio, ATOMINC_DECIMALS)?).u128(),
+                (Uint128::new(first_deposit)
+                    * Decimal::from_atomics(cw20_shit_ratio, ATOMINC_DECIMALS)?)
+                .u128(),
                 "ushit"
             ),
             coin(DEFAULT_BALANCE, "usilk"), // has full balance of non accepted token
