@@ -5,10 +5,14 @@ use cw_denom::UncheckedDenom;
 
 #[cw_serde]
 pub struct InstantiateMsg {
+    /// owner of the shit strap
     pub owner: String,
+    /// a list of possible accepted assets
     pub accepted: Vec<PossibleShit>,
-    pub cutoff: Uint128, // desired value to be bootstrapped. Once reached, no more deposits are possible
-    pub shitmos: String, // SHITMOS token address
+    /// Desired cutoff points for shitstrap. Once reached, no more deposits are possible.
+    pub cutoff: Uint128,
+    /// SHITMOS token address
+    pub shitmos: String,
 }
 
 #[cw_serde]
@@ -21,16 +25,18 @@ pub struct PossibleShit {
 pub enum ExecuteMsg {
     /// Entry point to participate in shit-strap
     ShitStrap { shit: AssetUnchecked },
-    /// Admin function to set full-of-shit status to on
+    /// Admin function to set full-of-shit status to on. *(used for emergencies or early cutoff)*
     Flush {},
     /// Cw20 Entry Point
     Receive(Cw20ReceiveMsg),
-    /// Only addr that sent shit-strap into being full of shit can call this function to claim any excess funds.
+    /// Refunds anyone that was the last one to shitstrap, and sent excess funds. 
     RefundShitter{}
 }
 
 #[cw_serde]
 pub enum ReceiveMsg {
+    /// Manually register an address for a shit strap when sending cw20 tokens. 
+    /// This can be a different address than the sender, if desired.
     ShitStrap { shit_strapper: String },
 }
 
@@ -45,7 +51,9 @@ pub enum QueryMsg {
     /// Can be used to calculate how much more is needed for a full-of-shit status.
     ShitPile {},
     #[returns(bool)]
+    /// Query if the shit strap contract is no longer active
     FullOfShit {},
+    /// Query the shit conversation ratio for a given asset
     #[returns(Option<Decimal>)]
     ShitRate{asset: String,}
 
@@ -56,4 +64,29 @@ pub enum QueryMsg {
 pub struct AssetUnchecked {
     pub denom: UncheckedDenom,
     pub amount: Uint128,
+}
+
+
+impl AssetUnchecked {
+    pub fn from_native(denom: &str, amount: u128) -> Self {
+        AssetUnchecked {
+            denom: UncheckedDenom::Native(denom.into()),
+            amount: amount.into(),
+        }
+    }
+}
+
+impl PossibleShit {
+    pub fn native_denom(native_denom: &str, shit_rate: Decimal) -> Self {
+        PossibleShit {
+            token: UncheckedDenom::Native(native_denom.into()),
+            shit_rate,
+        }
+    }
+    pub fn native_cw20(native_coin: &str, shit_rate: Decimal) -> Self {
+        PossibleShit {
+            token: UncheckedDenom::Cw20(native_coin.into()),
+            shit_rate,
+        }
+    }
 }

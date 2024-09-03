@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    coins, from_json, to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Empty,
-    Env, Fraction, MessageInfo, Response, StdError, StdResult, Uint128,
+    coins, from_json, to_json_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, Fraction,
+    MessageInfo, Response, StdError, StdResult, Uint128,
 };
 use cw2::set_contract_version;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
@@ -63,7 +63,7 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::ShitStrap { shit } => execute_shit_strap(deps, info.funds, shit, info.sender),
+        ExecuteMsg::ShitStrap { shit } => execute_shit_strap(deps, info.clone(), shit, info.sender),
         ExecuteMsg::Flush {} => execute_flush(deps, info.sender),
         ExecuteMsg::Receive(cw20_msg) => receive_cw20_message(deps, info, cw20_msg),
         ExecuteMsg::RefundShitter {} => refund_shitter(deps, info),
@@ -107,9 +107,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 /// Entry point to particpate in shitstrap
 pub fn execute_shit_strap(
     deps: DepsMut,
-    sent_assets: Vec<Coin>,
+    info: MessageInfo,
     shit: AssetUnchecked,
-    sender: Addr,
+    shit_strapper: Addr,
 ) -> Result<Response, ContractError> {
     let mut msgs = vec![];
     let mut config = CONFIG.load(deps.storage)?;
@@ -119,7 +119,6 @@ pub fn execute_shit_strap(
         return Err(ContractError::FullOfShit {});
     }
 
-    // verify sent shit is one of the accepted shits
     if let Some(matched) = config
         .accepted
         .clone()
@@ -128,8 +127,8 @@ pub fn execute_shit_strap(
     {
         match matched.token.clone() {
             UncheckedDenom::Native(t) => {
-                // ensure shit specified has been sent
-                if !sent_assets
+                if !info
+                    .funds
                     .into_iter()
                     .find(|c| c.denom == t)
                     .is_some_and(|c| c.amount == shit.amount)
@@ -137,10 +136,15 @@ pub fn execute_shit_strap(
                     return Err(ContractError::DidntSendShit {});
                 }
             }
-            UncheckedDenom::Cw20(_) => {}
+            UncheckedDenom::Cw20(c) => {
+                // info.sender should always be one of the accepted tokens
+                if info.sender != c {
+                    return Err(ContractError::ShittyCw20 {});
+                }
+            }
         }
         // defines conversion rate for accepted shit to SHITMOS
-        let mut shit_value = shit.amount * matched.shit_rate;
+        let shit_value = shit.amount * matched.shit_rate;
         let received_denom = matched.clone().token.into_checked(deps.as_ref())?;
 
         // if new value is greater than cutoff,
@@ -152,37 +156,33 @@ pub fn execute_shit_strap(
         if new_val.clone() >= cutoff.clone() {
             // new_sv = sv + current - cutoff
             // return assets = sv - new_sv / shit_rate
-            let old_shit_value = shit_value;
-            println!("old_shit_value: {:#?}", old_shit_value);
             // gets the amount of tokens sent after cutoff limit
             let cutoff_shit_value = new_val.clone() - cutoff.clone();
 
-            println!("cutoff_shit_value: {:#?}", shit_value);
             let shit_2_return: Uint128 = cutoff_shit_value * matched.shit_rate.inv().expect("ahh");
-            println!("shit_2_return: {:#?}", shit_2_return);
 
             // send new token amount to admin
-            let shitstrap_dao = shitstrap_dao(received_denom.clone(), sender.clone(), shit_value)?;
+            let shitstrap_dao =
+                shitstrap_dao(received_denom.clone(), shit_strapper.clone(), shit_value)?;
             msgs.push(shitstrap_dao);
 
             // form return msgs
             let msg: CosmosMsg = match received_denom.clone() {
                 CheckedDenom::Native(shit) => CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
-                    to_address: sender.to_string(),
+                    to_address: shit_strapper.to_string(),
                     amount: coins(shit_2_return.into(), shit),
                 }),
                 CheckedDenom::Cw20(shit) => CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
                     contract_addr: shit.to_string(),
                     msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
-                        recipient: sender.to_string(),
+                        recipient: shit_strapper.to_string(),
                         amount: shit_2_return,
                     })?,
                     funds: vec![],
                 }),
             };
             // push msg to response
-            REFUND_SHIT.save(deps.storage, sender.clone(), &msg)?;
-            println!("REFUND_SHIT msg: {:#?}", msg);
+            REFUND_SHIT.save(deps.storage, shit_strapper.clone(), &msg)?;
 
             // shit-strap is now complete.
             config.full_of_shit = true;
@@ -190,7 +190,7 @@ pub fn execute_shit_strap(
         }
         // form SHITMOS transfer msg.
         let send_shitmos: CosmosMsg<Empty> = CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
-            to_address: sender.to_string(),
+            to_address: shit_strapper.to_string(),
             amount: coins(shit_value.into(), config.shitmos_addr),
         });
 
@@ -207,13 +207,13 @@ pub fn execute_shit_strap(
 pub fn execute_flush(deps: DepsMut, sender: Addr) -> Result<Response, ContractError> {
     // only owner can call this
     if sender != CONFIG.load(deps.storage)?.admin {
-        return Err(ContractError::Unauthorized {});
+        return Err(ContractError::ShittyAuthorization {});
     }
     let mut config = CONFIG.load(deps.storage)?;
     config.full_of_shit = true;
     CONFIG.save(deps.storage, &config)?;
 
-    Ok(Response::new().add_attribute("action", "value"))
+    Ok(Response::new().add_attribute("flusher", sender.to_string()))
 }
 
 fn receive_cw20_message(
@@ -222,11 +222,14 @@ fn receive_cw20_message(
     msg: Cw20ReceiveMsg,
 ) -> Result<Response, ContractError> {
     match from_json(&msg.msg)? {
+        // only cw20 can call cw20 entry point.
+        // we set the denom for the cw20 as info.sender,
+        // which will result in error if any addr other than accepted cw20 makes call.
         ReceiveMsg::ShitStrap { shit_strapper } => {
             let sender = deps.api.addr_validate(&shit_strapper)?;
             execute_shit_strap(
                 deps,
-                info.funds,
+                info.clone(),
                 AssetUnchecked {
                     denom: UncheckedDenom::Cw20(info.sender.to_string()),
                     amount: msg.amount,
