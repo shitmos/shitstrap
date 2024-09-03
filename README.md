@@ -2,23 +2,21 @@
 
 ## Description 
 
-## Build 
+## Deployments 
+
+Network | code-id | ||
+--- | --- | --- | --- | 
+Stargaze `elgafar-1` | 4532 | 
+
+
+## Scripts
+build contract
 ```sh
   docker run --rm -t -v "$(pwd)":/code \
     --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
     --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
     cosmwasm/optimizer:0.16.0
 ```
-
-## Deployments 
-
-
-Stargaze 
-
-Network | code-id | ||
---- | --- | --- | --- | 
-Stargaze `elgafar-1` | 4531 | 
-## Scripts
 
 instantiate contract
 ```json

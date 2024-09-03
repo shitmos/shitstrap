@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Decimal, Uint128};
+use cosmwasm_std::Uint128;
 use cw20::Cw20ReceiveMsg;
 use cw_denom::UncheckedDenom;
 
@@ -20,7 +20,7 @@ pub struct PossibleShit {
     pub token: UncheckedDenom,
     /// Atomic unit value for conversion ratio with shitmos.\
     /// This contract defaults to 6 decimal places. *(1000000 == 1:1 coversion ratio)*
-    pub shit_rate: Uint128, 
+    pub shit_rate: Uint128,
 }
 
 #[cw_serde]
@@ -31,13 +31,13 @@ pub enum ExecuteMsg {
     Flush {},
     /// Cw20 Entry Point
     Receive(Cw20ReceiveMsg),
-    /// Refunds anyone that was the last one to shitstrap, and sent excess funds. 
-    RefundShitter{}
+    /// Refunds anyone that was the last one to shitstrap, and sent excess funds.
+    RefundShitter {},
 }
 
 #[cw_serde]
 pub enum ReceiveMsg {
-    /// Manually register an address for a shit strap when sending cw20 tokens. 
+    /// Manually register an address for a shit strap when sending cw20 tokens.
     /// This can be a different address than the sender, if desired.
     ShitStrap { shit_strapper: String },
 }
@@ -56,17 +56,14 @@ pub enum QueryMsg {
     FullOfShit {},
     /// Query the shit conversation ratio for a given asset
     #[returns(Option<Uint128>)]
-    ShitRate{asset: String,}
-
+    ShitRate { asset: String },
 }
-
 
 #[cw_serde]
 pub struct AssetUnchecked {
     pub denom: UncheckedDenom,
     pub amount: Uint128,
 }
-
 
 impl AssetUnchecked {
     pub fn from_native(denom: &str, amount: u128) -> Self {
