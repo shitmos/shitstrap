@@ -257,8 +257,8 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
     block.height += 1;
     shit.app.set_block(block);
 
-    let owner_bal = shit.app.wrap().query_all_balances(OWNER)?[0].clone();
-    println!("{:#?}", owner_bal);
+    let og_owner_bal = shit.app.wrap().query_all_balances(OWNER)?[0].clone();
+    assert_eq!(og_owner_bal.amount, Uint128::from(DEFAULT_BALANCE));
 
     // participate in shitstrap with correct token
     shit.participate_native(SHITTER1, 221_000_000, "uatom")?;
@@ -304,9 +304,13 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
         .query_wasm_smart(shit.shitstrap, &crate::msg::QueryMsg::FullOfShit {})?;
     assert_eq!(res, true);
 
-    // confirm balance
+    // confirm balances
+    let balance = shit.app.wrap().query_balance(shitstrap.clone(), "uatom")?;
+    assert_eq!(balance.amount, Uint128::from(1_000_000u128)); // 1 token is waiting to be redeemed by last shit strapper
     let balance = shit.app.wrap().query_balance(SHITTER1, "uatom")?;
     assert_eq!(balance.amount, Uint128::from(777_000_000u128));
+    let owner_bal = shit.app.wrap().query_all_balances(OWNER)?[0].clone();
+    assert_eq!(owner_bal.amount, Uint128::from(1_222_000_000u128)); // owner received 222 ATOM
 
     // no more shitstrapping can commence
     let err = shit
@@ -338,9 +342,8 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
     // should have 1 extra token sent back
     let balance = shit.app.wrap().query_balance(SHITTER1, "uatom")?;
     assert_eq!(balance.amount, Uint128::from(778_000_000u128));
-    // owner should have
-    let owner_bal = shit.app.wrap().query_all_balances(OWNER)?[0].clone();
-    println!("{:#?}", owner_bal);
+    let balance = shit.app.wrap().query_balance(shitstrap.clone(), "uatom")?;
+    assert_eq!(balance.amount, Uint128::zero()); // 1 token is waiting to be redeemed by last shit strapper
 
     Ok(())
 }
