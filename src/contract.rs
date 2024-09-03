@@ -175,7 +175,7 @@ pub fn execute_shit_strap(
                 let tokens = owned?;
 
                 if tokens.0 == received_denom.to_string() {
-                    _amnt = (tokens.1 + return_to_shitter_amnt).u128()
+                    _amnt = (tokens.1 + (shit.amount - overflow)).u128()
                 } else {
                     _amnt = tokens.1.u128()
                 }
@@ -186,12 +186,12 @@ pub fn execute_shit_strap(
                     _amnt.into(),
                     config.owner.clone(),
                 )?;
-                
+
                 // msg attributes for indexing
                 let attr1 = Attribute::new("dao_shitstrap_amount", shit_value.to_string());
                 let attr2 = Attribute::new("dao_shitstrap_recieved", received_denom.to_string());
                 attrs.extend(vec![attr1, attr2]);
-                
+
                 // println!("overflow: {:#?}", overflow);
                 // println!("return_to_shitter_amnt: {:#?}", return_to_shitter_amnt);
                 // println!("shitstrap_dao: {:#?}", shitstrap_dao);
