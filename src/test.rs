@@ -343,8 +343,7 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
     let balance = shit.app.wrap().query_balance(SHITTER1, "uatom")?;
     assert_eq!(balance.amount, Uint128::from(778_000_000u128));
     let balance = shit.app.wrap().query_balance(shitstrap.clone(), "uatom")?;
-    assert_eq!(balance.amount, Uint128::zero()); // 1 token is waiting to be redeemed by last shit strapper
-
+    assert_eq!(balance.amount, Uint128::zero()); // 1 token is no longer waiting to be redeemed by last shit strapper
     Ok(())
 }
 

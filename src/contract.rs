@@ -150,6 +150,13 @@ pub fn execute_shit_strap(
         let shit_value = shit.amount * Decimal::from_atomics(matched.shit_rate, ATOMINC_DECIMALS)?;
         let received_denom = matched.clone().token.into_checked(deps.as_ref())?;
 
+        let add_count = |prev: Option<Uint128>| -> StdResult<Uint128> {
+            prev.unwrap_or_default()
+                .checked_add(Uint128::new(shit.amount.u128()))
+                .map_err(StdError::overflow)
+        };
+        SHITSTRAP_STATE.update(deps.storage, received_denom.to_string(), &add_count)?;
+
         // if new_val > or = cutoff,
         // any excess funds sent are able to be claimed by sender.
         let new_val = shit_value + current_shit_value.clone();
@@ -175,7 +182,7 @@ pub fn execute_shit_strap(
                 let tokens = owned?;
 
                 if tokens.0 == received_denom.to_string() {
-                    _amnt = (tokens.1 + (shit.amount - overflow)).u128()
+                    _amnt = (tokens.1 - (shit.amount - overflow)).u128()
                 } else {
                     _amnt = tokens.1.u128()
                 }
@@ -192,9 +199,9 @@ pub fn execute_shit_strap(
                 let attr2 = Attribute::new("dao_shitstrap_recieved", received_denom.to_string());
                 attrs.extend(vec![attr1, attr2]);
 
-                // println!("overflow: {:#?}", overflow);
-                // println!("return_to_shitter_amnt: {:#?}", return_to_shitter_amnt);
-                // println!("shitstrap_dao: {:#?}", shitstrap_dao);
+                println!("overflow: {:#?}", overflow);
+                println!("return_to_shitter_amnt: {:#?}", return_to_shitter_amnt);
+                println!("shitstrap_dao: {:#?}", shitstrap_dao);
                 msgs.push(shitstrap_dao);
             }
 
@@ -228,14 +235,7 @@ pub fn execute_shit_strap(
         });
 
         // update internal shitstrap value, & save asset-specific shit strap state.
-
-        let add_count = |prev: Option<Uint128>| -> StdResult<Uint128> {
-            prev.unwrap_or_default()
-                .checked_add(Uint128::new(shit.amount.u128()))
-                .map_err(StdError::overflow)
-        };
         CURRENT_SHITSTRAP_VALUE.save(deps.storage, &new_val)?;
-        SHITSTRAP_STATE.update(deps.storage, received_denom.to_string(), &add_count)?;
 
         // push msg to response
         msgs.push(send_shitmos)
