@@ -1,4 +1,4 @@
-use cosmwasm_std::StdError;
+use cosmwasm_std::{DecimalRangeExceeded, StdError};
 use cw_denom::DenomError;
 use thiserror::Error;
 
@@ -9,6 +9,9 @@ pub enum ContractError {
 
     #[error("{0}")]
     ShitDenomError(#[from] DenomError),
+    
+    #[error("{0}")]
+    DecimalRangeExceeded(#[from] DecimalRangeExceeded),
 
     #[error("Wrong Shit.")]
     WrongShit {},

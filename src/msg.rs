@@ -18,7 +18,9 @@ pub struct InstantiateMsg {
 #[cw_serde]
 pub struct PossibleShit {
     pub token: UncheckedDenom,
-    pub shit_rate: u64, // # of tokens needed to recieve 1 SHITMOS
+    /// Atomic unit value for conversion ratio with shitmos.\
+    /// This contract defaults to 6 decimal places. *(1000000 == 1:1 coversion ratio)*
+    pub shit_rate: Uint128, 
 }
 
 #[cw_serde]
@@ -39,7 +41,6 @@ pub enum ReceiveMsg {
     /// This can be a different address than the sender, if desired.
     ShitStrap { shit_strapper: String },
 }
-
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
@@ -54,7 +55,7 @@ pub enum QueryMsg {
     /// Query if the shit strap contract is no longer active
     FullOfShit {},
     /// Query the shit conversation ratio for a given asset
-    #[returns(Option<u64>)]
+    #[returns(Option<Uint128>)]
     ShitRate{asset: String,}
 
 }
@@ -77,16 +78,16 @@ impl AssetUnchecked {
 }
 
 impl PossibleShit {
-    pub fn native_denom(native_denom: &str, shit_rate: u64) -> Self {
+    pub fn native_denom(native_denom: &str, shit_rate: u128) -> Self {
         PossibleShit {
             token: UncheckedDenom::Native(native_denom.into()),
-            shit_rate,
+            shit_rate: Uint128::new(shit_rate),
         }
     }
-    pub fn native_cw20(native_coin: &str, shit_rate: u64) -> Self {
+    pub fn native_cw20(native_coin: &str, shit_rate: u128) -> Self {
         PossibleShit {
             token: UncheckedDenom::Cw20(native_coin.into()),
-            shit_rate,
+            shit_rate: Uint128::new(shit_rate),
         }
     }
 }

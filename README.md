@@ -17,7 +17,7 @@ Stargaze
 
 Network | code-id | ||
 --- | --- | --- | --- | 
-Stargaze `elgafar-1` | 4530 | 
+Stargaze `elgafar-1` | 4531 | 
 ## Scripts
 
 instantiate contract
@@ -27,7 +27,7 @@ instantiate contract
     "accepted": [
         {
             "token":{"native": "token-addr"} , 
-            "shit_rate": 150, 
+            "shit_rate": 150,  // for every 1 token sent, get 1.5 shitmos30
         },
         {
             "token":{"cw20": "cw20-contract-addr"} , 

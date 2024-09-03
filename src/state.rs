@@ -4,6 +4,8 @@ use cw_storage_plus::{Item, Map};
 
 use crate::msg::PossibleShit;
 
+pub const ATOMINC_DECIMALS: u32 = 6u32;
+
 #[cw_serde]
 pub struct Config {
     pub admin: Addr,

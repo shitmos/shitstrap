@@ -10,7 +10,7 @@ use cw_denom::{CheckedDenom, UncheckedDenom};
 
 use crate::error::ContractError;
 use crate::msg::{AssetUnchecked, ExecuteMsg, InstantiateMsg, QueryMsg, ReceiveMsg};
-use crate::state::{Config, CONFIG, CURRENT_SHITSTRAP_VALUE, REFUND_SHIT};
+use crate::state::{Config, ATOMINC_DECIMALS, CONFIG, CURRENT_SHITSTRAP_VALUE, REFUND_SHIT};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:cw-shit-strap";
@@ -144,7 +144,8 @@ pub fn execute_shit_strap(
             }
         }
         // defines conversion rate for accepted shit to SHITMOS
-        let shit_value = shit.amount * Decimal::percent(matched.shit_rate);
+        let shit_value =
+            shit.amount * Decimal::from_atomics(matched.shit_rate, ATOMINC_DECIMALS)?;
         let received_denom = matched.clone().token.into_checked(deps.as_ref())?;
 
         // if new value is greater than cutoff,
@@ -159,8 +160,11 @@ pub fn execute_shit_strap(
             // gets the amount of tokens sent after cutoff limit
             let cutoff_shit_value = new_val.clone() - cutoff.clone();
 
-            let shit_2_return: Uint128 =
-                cutoff_shit_value * Decimal::percent(matched.shit_rate).inv().expect("ahh");
+            let shit_2_return: Uint128 = cutoff_shit_value
+                * Decimal::from_atomics(matched.shit_rate, ATOMINC_DECIMALS)?
+                    .inv()
+                    .expect("ahh");
+            // cutoff_shit_value * Decimal::percent(matched.shit_rate).inv().expect("ahh");
 
             // send new token amount to admin
             let shitstrap_dao =
