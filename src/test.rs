@@ -10,7 +10,7 @@ use crate::{
     ContractError,
 };
 
-pub const DEFAULT_BALANCE: u128 = 1000;
+pub const DEFAULT_BALANCE: u128 = 1_000_000_000;
 pub const DEFAULT_CW20: &str = "contract0";
 pub const OWNER: &str = "owner";
 pub const SHITTER1: &str = "shitter1";
@@ -123,26 +123,26 @@ impl ShitSuite {
         self.app
             .sudo(SudoMsg::Bank(BankSudo::Mint {
                 to_address: OWNER.into(),
-                amount: vec![coin(1000u128, "uatom")],
+                amount: vec![coin(1_000_000_000u128, "uatom")],
             }))
             .unwrap();
         self.app
             .sudo(SudoMsg::Bank(BankSudo::Mint {
                 to_address: SHITTER1.into(),
-                amount: vec![coin(1_000u128, "uatom")],
+                amount: vec![coin(1_000_000_000u128, "uatom")],
             }))
             .unwrap();
         self.app
             .sudo(SudoMsg::Bank(BankSudo::Mint {
                 to_address: SHITTER2.into(),
-                amount: vec![coin(1_000u128, "usilk")],
+                amount: vec![coin(1_000_000_000u128, "usilk")],
             }))
             .unwrap();
         // fund shitstrap with 1 million shit
         self.app
             .sudo(SudoMsg::Bank(BankSudo::Mint {
                 to_address: shitstrap.to_string(),
-                amount: vec![coin(1_000_000, "ushit")],
+                amount: vec![coin(1_000_000_000_000u128, "ushit")],
             }))
             .unwrap();
         Ok(())
@@ -197,7 +197,7 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
         222u128,
     );
     // deposit 1 less than max
-    let first_deposit = 221u128;
+    let first_deposit = 221_000_000u128;
     let shitstrap = shit.shitstrap.clone();
     shit.setup_default_funds(shitstrap.clone())?;
 
@@ -256,7 +256,8 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
     block.height += 1;
     shit.app.set_block(block);
 
-    shit.participate_native(SHITTER1, 221, "uatom")?;
+    shit.participate_native(SHITTER1, 221_000_000, "uatom")?;
+
     // confirm shit_rate is calculated correctly
     let res: Uint128 = shit
         .app
@@ -280,9 +281,9 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
         Addr::unchecked(SHITTER1.to_string()),
         shitstrap.clone(),
         &crate::msg::ExecuteMsg::ShitStrap {
-            shit: AssetUnchecked::from_native("uatom", 2u128),
+            shit: AssetUnchecked::from_native("uatom", 2000000u128),
         },
-        &vec![coin(2u128, "uatom")],
+        &vec![coin(2000000u128, "uatom")],
     )?;
 
     let mut block = shit.app.block_info();
@@ -297,7 +298,7 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
     assert_eq!(res, true);
 
     let balance = shit.app.wrap().query_balance(SHITTER1, "uatom")?;
-    assert_eq!(balance.amount, Uint128::from(779u128));
+    assert_eq!(balance.amount, Uint128::from(779_000_000u128));
 
     // no more shitstrapping can commence
     let err = shit
@@ -306,9 +307,9 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
             Addr::unchecked(SHITTER1.to_string()),
             shitstrap.clone(),
             &crate::msg::ExecuteMsg::ShitStrap {
-                shit: AssetUnchecked::from_native("uatom", 2u128),
+                shit: AssetUnchecked::from_native("uatom", 2_000_000u128),
             },
-            &vec![coin(2u128, "uatom")],
+            &vec![coin(2_000_000u128, "uatom")],
         )
         .unwrap_err();
     assert_eq!(ContractError::FullOfShit {}, err.downcast().unwrap());
@@ -326,7 +327,7 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
     shit.app.set_block(block);
 
     let balance = shit.app.wrap().query_balance(SHITTER1, "uatom")?;
-    assert_eq!(balance.amount, Uint128::from(780u128));
+    assert_eq!(balance.amount, Uint128::from(780_000_000u128));
 
     Ok(())
 }
@@ -334,7 +335,7 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
 #[test]
 fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Error> {
     // create testing suite
-    let first_deposit = 100u128;
+    let first_deposit = 100_000_000u128;
     let cw20_shit_ratio = 640000u64;
     let atom_shit_ratio = 360000u64;
 
@@ -413,7 +414,7 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
     assert_eq!(ContractError::WrongShit {}, err.downcast().unwrap());
 
     // user 1 funds with native
-    shit.participate_native(SHITTER1, 100, "uatom")?;
+    shit.participate_native(SHITTER1, 100_000_000, "uatom")?;
     // confirm shit_rate is calculated correctly
     let res: Uint128 = shit
         .app
@@ -439,7 +440,7 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
     );
 
     // user 2 funds with coin. should reflect 50% shit weight of native
-    shit.participate_cw20(SHITTER2, 100, "contract0")?;
+    shit.participate_cw20(SHITTER2, 100_000_000, "contract0")?;
     
     // confirm shit_rate is calculated correctly
     let res: Uint128 = shit
