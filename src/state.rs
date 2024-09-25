@@ -1,6 +1,5 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, CosmosMsg, Uint128};
-use cw_denom::CheckedDenom;
 use cw_storage_plus::{Item, Map};
 
 use crate::msg::PossibleShit;

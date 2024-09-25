@@ -1,0 +1,27 @@
+{
+    "name": "@shitmos/shit_strap",
+    "version": "0.9.0",
+    "description": "Shitstrap Contract Front End Library",
+    "main": "src/main.ts",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1",
+      "codegen": "ts-node codegen.ts"
+    },
+    "author": "Shane Vitarana",
+    "license": "Apache-2.0",
+    "dependencies": {
+      "@cosmjs/amino": "0.29.4",
+      "@cosmjs/cosmwasm-stargate": "^0.29.4",
+      "@cosmjs/encoding": "0.29.4",
+      "@cosmjs/proto-signing": "0.29.4",
+      "@cosmjs/stargate": "0.29.4",
+      "@cosmjs/tendermint-rpc": "^0.29.4",
+      "@cosmwasm/ts-codegen": "^0.24.0",
+      "cosmjs-types": "^0.5.2",
+      "cosmwasm": "1.1.1",
+      "ts-node": "^10.9.1",
+      "typescript": "^4.9.3"
+    },
+    "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  }
+  

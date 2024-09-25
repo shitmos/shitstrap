@@ -1,13 +1,16 @@
 # Cw-Shit-Strap
 
- st tx wasm i 4536 '{"owner": "stars14vdzxywqxlwm2mqnxmrxmat34jx854esjq4zqm","accepted":[{"token":{"native": "ustars"}, "shit_rate": "0500000"}],"cutoff":"100","shitmos":"ustars"}' --from test1 --gas auto --gas-adjustment 1.3 --fees 50000ustars --no-admin --label="test shitmos" --chain-id elgafar-1
+Shitstrap is a single use contract, for permissionless, non-custodial OTC token swaps. 
+
 ## Description 
+Each shitstrap instance has an owner that will recieve all assets accumulated during a shitstrap. There can be a list of accepted tokens (cw20 & native tokens are supported), each with their own specific `shit_rate`, which is the ratio uses to determine the amount of tokens that will be sent to a shitstrap participant, specific to each token eligible. There is a `cutoff` limit that serves to end a shitstrap, once this amount of tokens is distributed to shitstrap participants. Any excess funds send resulting in the `cutoff` limit to be reached will be able to be redeemed by the rightful participant. 
 
 ## Deployments 
 
-Network | code-id | ||
+Network | code-id | contract-addr ||
 --- | --- | --- | --- | 
-Stargaze `elgafar-1` | 4536 | 
+Stargaze `elgafar-1` | - | 
+Osmosis `osmosis-test-5` | 11043 | osmo10jsnt4rhfsr7w50z3vg3ghfxy98fassnsxnmdypfuvnzzhscsegqsf9432
 
 
 ## Scripts
@@ -19,18 +22,18 @@ build contract
     cosmwasm/optimizer-arm64:0.16.0
 ```
 
-instantiate contract
+## Create A New Shitstrap
 ```json
 {
     "owner":"<owner_addr>",
     "accepted": [
         {
             "token":{"native": "token-addr"} , 
-            "shit_rate": 150,  // for every 1 token sent, get 1.5 shitmos30
+            "shit_rate": 1500000,  // for every 1 token sent, get 1.5 shitmos
         },
         {
             "token":{"cw20": "cw20-contract-addr"} , 
-            "shit_rate": 75, 
+            "shit_rate": 500000,  // for every 1 token sent, get 0.5 shitmos
         },
     ],
     "cutoff": "222",
@@ -38,7 +41,7 @@ instantiate contract
 }
 ```
 
-participate in shitmos
+## Participate In Shitstrap
 ```json
 {
     "shit_strap": {
@@ -50,9 +53,26 @@ participate in shitmos
 }
 ```
 
-
-
 ## TEST
+<!-- {
+    "owner":"osmo1wrxvkvnu9fvucyaa9sxyecapgl7qft6kqmn8ft",
+    "accepted": [
+        {
+            "token":{"native": "factory/osmo1vpudlpnuqwlpuc2q9yptjssp46snvf2twu3t2s/shitstrap2"} , 
+            "shit_rate": "30000000",
+        },
+        {
+            "token":{"native": "factory/osmo1vpudlpnuqwlpuc2q9yptjssp46snvf2twu3t2s/shitstrap3"} , 
+            "shit_rate": "710000",  
+        },
+    {
+            "token":{"native": "factory/osmo1vpudlpnuqwlpuc2q9yptjssp46snvf2twu3t2s/shitstrap4"} , 
+            "shit_rate": "1000000",  
+        },
+    ],
+    "cutoff": "500000000000",
+    "shitmos": "factory/osmo1vpudlpnuqwlpuc2q9yptjssp46snvf2twu3t2s/shitstrap"
+} -->
 
 ### Create contract with owner that does not have balance 
 ```sh

@@ -9,7 +9,7 @@ use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 use cw_denom::{CheckedDenom, UncheckedDenom};
 
 use crate::error::ContractError;
-use crate::msg::{AssetUnchecked, ExecuteMsg, InstantiateMsg, QueryMsg, ReceiveMsg};
+use crate::msg::{AssetUnchecked, ExecuteMsg, InstantiateMsg, PossibleShit, QueryMsg, ReceiveMsg};
 use crate::state::{
     Config, ATOMINC_DECIMALS, CONFIG, CURRENT_SHITSTRAP_VALUE, REFUND_SHIT, SHITSTRAP_STATE,
 };
@@ -47,16 +47,6 @@ pub fn instantiate(
     Ok(Response::new())
 }
 
-fn refund_shitter(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
-    let mut msg = vec![];
-    if let Some(refund) = REFUND_SHIT.may_load(deps.storage, info.sender)? {
-        msg.push(refund);
-        REFUND_SHIT.clear(deps.storage);
-    } else {
-        return Err(ContractError::FullOfShit {});
-    }
-    Ok(Response::new().add_messages(msg))
-}
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
@@ -75,7 +65,7 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Cutoff {} => to_json_binary(&CONFIG.load(deps.storage)?.cutoff),
+        QueryMsg::Config {} => to_json_binary(&CONFIG.load(deps.storage)?),
         QueryMsg::ShitPile {} => to_json_binary(&CURRENT_SHITSTRAP_VALUE.load(deps.storage)?),
         QueryMsg::FullOfShit {} => to_json_binary(&CONFIG.load(deps.storage)?.full_of_shit),
         QueryMsg::ShitRate { asset } => to_json_binary(
@@ -103,6 +93,18 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
                 .flatten()
                 .next(),
         ),
+        QueryMsg::ShitRates { .. } => {
+            let config = CONFIG.load(deps.storage)?;
+            let shit_rates: Vec<PossibleShit> = config
+                .accepted
+                .into_iter()
+                .map(|c| PossibleShit {
+                    token: c.token,
+                    shit_rate: c.shit_rate,
+                })
+                .collect();
+            to_json_binary(&shit_rates)
+        }
     }
 }
 
@@ -256,6 +258,17 @@ pub fn execute_flush(deps: DepsMut, sender: Addr) -> Result<Response, ContractEr
     CONFIG.save(deps.storage, &config)?;
 
     Ok(Response::new().add_attribute("flusher", sender.to_string()))
+}
+
+fn refund_shitter(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+    let mut msg = vec![];
+    if let Some(refund) = REFUND_SHIT.may_load(deps.storage, info.sender)? {
+        msg.push(refund);
+        REFUND_SHIT.clear(deps.storage);
+    } else {
+        return Err(ContractError::FullOfShit {});
+    }
+    Ok(Response::new().add_messages(msg))
 }
 
 fn receive_cw20_message(

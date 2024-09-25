@@ -3,24 +3,18 @@ use cosmwasm_std::Uint128;
 use cw20::Cw20ReceiveMsg;
 use cw_denom::UncheckedDenom;
 
+use crate::state::Config;
+
 #[cw_serde]
 pub struct InstantiateMsg {
     /// owner of the shit strap
     pub owner: String,
     /// a list of possible accepted assets
     pub accepted: Vec<PossibleShit>,
-    /// Desired cutoff points for shitstrap. Once reached, no more deposits are possible.
+    /// Desired cutoff points for shitstrap. 1000000 == 1 token.
     pub cutoff: Uint128,
     /// SHITMOS token address
     pub shitmos: String,
-}
-
-#[cw_serde]
-pub struct PossibleShit {
-    pub token: UncheckedDenom,
-    /// Atomic unit value for conversion ratio with shitmos.\
-    /// This contract defaults to 6 decimal places. *(1000000 == 1:1 coversion ratio)*
-    pub shit_rate: Uint128,
 }
 
 #[cw_serde]
@@ -41,12 +35,13 @@ pub enum ReceiveMsg {
     /// This can be a different address than the sender, if desired.
     ShitStrap { shit_strapper: String },
 }
+
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
     /// Returns max possible deposit value for a shit-strap instance
-    #[returns(Uint128)]
-    Cutoff {},
+    #[returns(Config)]
+    Config {},
     #[returns(Uint128)]
     /// Current amount of shit value that has been deposited in the shit-strap.
     /// Can be used to calculate how much more is needed for a full-of-shit status.
@@ -57,6 +52,9 @@ pub enum QueryMsg {
     /// Query the shit conversation ratio for a given asset
     #[returns(Option<Uint128>)]
     ShitRate { asset: String },
+    /// Query the shit conversation ratio for a given asset
+    #[returns(Option<Vec<PossibleShit>>)]
+    ShitRates {},
 }
 
 #[cw_serde]
@@ -72,6 +70,15 @@ impl AssetUnchecked {
             amount: amount.into(),
         }
     }
+}
+
+#[cw_serde]
+pub struct PossibleShit {
+    /// Generic type for contract address or token included in shitstrap.
+    pub token: UncheckedDenom,
+    /// Atomic unit value for conversion ratio with shitmos.\
+    /// *(1000000 == 1:1 coversion ratio || 500000 ==  0.5 == half as much shitmos sent as asset recieved)*
+    pub shit_rate: Uint128,
 }
 
 impl PossibleShit {
