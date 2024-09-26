@@ -221,7 +221,11 @@
           },
           "shitmos": {
             "description": "SHITMOS token address",
-            "type": "string"
+            "allOf": [
+              {
+                "$ref": "#/definitions/UncheckedDenom"
+              }
+            ]
           }
         },
         "additionalProperties": false
