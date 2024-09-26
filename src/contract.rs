@@ -2,7 +2,7 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     coins, from_json, to_json_binary, Addr, Attribute, Binary, CosmosMsg, Decimal, Deps, DepsMut,
-    Empty, Env, Fraction, MessageInfo, Response, StdError, StdResult, Uint128,
+    Env, Fraction, MessageInfo, Response, StdError, StdResult, Uint128,
 };
 use cw2::set_contract_version;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
@@ -28,7 +28,7 @@ pub fn instantiate(
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     // set owner
     let owner = deps.api.addr_validate(&msg.owner)?;
-
+    let shitmos_addr = msg.shitmos.into_checked(deps.as_ref())?;
     // save contract instance config
     CONFIG.save(
         deps.storage,
@@ -36,7 +36,7 @@ pub fn instantiate(
             owner,
             accepted: msg.accepted,
             cutoff: msg.cutoff * Uint128::from(1_000_000u64), // moves 6 decimal places for minimal denoms
-            shitmos_addr: msg.shitmos,
+            shitmos_addr,
             full_of_shit: false,
         },
     )?;
@@ -231,10 +231,9 @@ pub fn execute_shit_strap(
         }
 
         // form SHITMOS transfer msg.
-        let send_shitmos: CosmosMsg<Empty> = CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
-            to_address: shit_strapper.to_string(),
-            amount: coins(shit_value.into(), config.shitmos_addr),
-        });
+        let send_shitmos = config
+            .shitmos_addr
+            .get_transfer_to_message(&shit_strapper, shit_value.into())?;
 
         // update internal shitstrap value, & save asset-specific shit strap state.
         CURRENT_SHITSTRAP_VALUE.save(deps.storage, &new_val)?;

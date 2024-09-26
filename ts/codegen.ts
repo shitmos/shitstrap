@@ -10,6 +10,10 @@ codegen({
       name: "Cw20Base",
       dir: "../cw20",
     },
+    {
+      name: "ShitStrapFactory",
+      dir: "../shitstrap-factory",
+    },
   ],
   outPath: "./src/",
 
@@ -26,11 +30,12 @@ codegen({
       enabled: true,
     },
     reactQuery: {
-      enabled: false,
-      optionalClient: true,
-      version: "v4",
+      enabled: true,
+      optionalClient: false,
+      version: 'v4',
       mutations: true,
       queryKeys: true,
+      queryFactory: true,
     },
     recoil: {
       enabled: false,

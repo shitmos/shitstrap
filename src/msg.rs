@@ -14,7 +14,7 @@ pub struct InstantiateMsg {
     /// Desired cutoff points for shitstrap. 1000000 == 1 token.
     pub cutoff: Uint128,
     /// SHITMOS token address
-    pub shitmos: String,
+    pub shitmos: UncheckedDenom,
 }
 
 #[cw_serde]

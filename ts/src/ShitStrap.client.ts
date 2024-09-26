@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import { Uint128, UncheckedDenom, InstantiateMsg, PossibleShit, ExecuteMsg, Binary, AssetUnchecked, Cw20ReceiveMsg, QueryMsg, Addr, Config, Boolean, NullableUint128, NullableArrayOfPossibleShit } from "./ShitStrap.types";
+import { Uint128, UncheckedDenom, InstantiateMsg, PossibleShit, ExecuteMsg, Binary, AssetUnchecked, Cw20ReceiveMsg, QueryMsg, Addr, CheckedDenom, Config, Boolean, NullableUint128, NullableArrayOfPossibleShit } from "./ShitStrap.types";
 export interface ShitStrapReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<Config>;

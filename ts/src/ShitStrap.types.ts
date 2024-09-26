@@ -14,7 +14,7 @@ export interface InstantiateMsg {
   accepted: PossibleShit[];
   cutoff: Uint128;
   owner: string;
-  shitmos: string;
+  shitmos: UncheckedDenom;
 }
 export interface PossibleShit {
   shit_rate: Uint128;
@@ -55,12 +55,17 @@ export type QueryMsg = {
   shit_rates: {};
 };
 export type Addr = string;
+export type CheckedDenom = {
+  native: string;
+} | {
+  cw20: Addr;
+};
 export interface Config {
   accepted: PossibleShit[];
   cutoff: Uint128;
   full_of_shit: boolean;
   owner: Addr;
-  shitmos_addr: string;
+  shitmos_addr: CheckedDenom;
 }
 export type Boolean = boolean;
 export type NullableUint128 = Uint128 | null;

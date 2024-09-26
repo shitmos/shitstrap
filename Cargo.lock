@@ -408,7 +408,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cw-shit-strap"
+name = "cw-shitstrap"
 version = "0.1.0"
 dependencies = [
  "cosmwasm-schema",
