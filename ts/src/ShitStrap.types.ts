@@ -13,8 +13,10 @@ export type UncheckedDenom = {
 export interface InstantiateMsg {
   accepted: PossibleShit[];
   cutoff: Uint128;
+  description: string;
   owner: string;
   shitmos: UncheckedDenom;
+  title: string;
 }
 export interface PossibleShit {
   shit_rate: Uint128;
@@ -63,9 +65,11 @@ export type CheckedDenom = {
 export interface Config {
   accepted: PossibleShit[];
   cutoff: Uint128;
+  description: string;
   full_of_shit: boolean;
   owner: Addr;
   shitmos_addr: CheckedDenom;
+  title: string;
 }
 export type Boolean = boolean;
 export type NullableUint128 = Uint128 | null;
