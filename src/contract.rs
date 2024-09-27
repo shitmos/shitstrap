@@ -35,9 +35,11 @@ pub fn instantiate(
         &Config {
             owner,
             accepted: msg.accepted,
-            cutoff: msg.cutoff * Uint128::from(1_000_000u64), // moves 6 decimal places for minimal denoms
+            cutoff: msg.cutoff * Uint128::from(1_000_000u64),
             shitmos_addr,
             full_of_shit: false,
+            title: msg.title,
+            description: msg.description,
         },
     )?;
 

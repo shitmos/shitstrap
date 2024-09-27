@@ -14,6 +14,8 @@ pub struct Config {
     pub cutoff: Uint128,
     pub shitmos_addr: CheckedDenom,
     pub full_of_shit: bool, // once cutoff is reached, full of shit set to true
+    pub title: String,
+    pub description: String,
 }
 
 pub const CONFIG: Item<Config> = Item::new("s");

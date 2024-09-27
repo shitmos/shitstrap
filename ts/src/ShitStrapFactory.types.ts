@@ -8,7 +8,7 @@ export interface InstantiateMsg {
   accepted: PossibleShit[];
   cutoff: Uint128;
   owner: string;
-  shitmos: string;
+  shitmos: UncheckedDenom;
 }
 export type ExecuteMsg = {
   create_native_shit_strap_contract: {

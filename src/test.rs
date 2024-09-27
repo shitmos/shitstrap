@@ -103,6 +103,8 @@ fn default_init(possible: Vec<PossibleShit>, cutoff: u128) -> ShitSuite {
         accepted: possible,
         cutoff: cutoff.into(),
         shitmos: cw_denom::UncheckedDenom::Native("ushit".into()),
+        title: "yoo".into(),
+        description: "yoooooo".into(),
     };
 
     // instantiate contract with cw20

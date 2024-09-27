@@ -8,11 +8,11 @@ codegen({
     },
     {
       name: "Cw20Base",
-      dir: "../cw20",
+      dir: "../external-protos/cw20",
     },
     {
       name: "ShitStrapFactory",
-      dir: "../shitstrap-factory",
+      dir: "../external-protos/shitstrap-factory",
     },
   ],
   outPath: "./src/",

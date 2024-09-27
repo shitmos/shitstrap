@@ -15,6 +15,10 @@ pub struct InstantiateMsg {
     pub cutoff: Uint128,
     /// SHITMOS token address
     pub shitmos: UncheckedDenom,
+    /// label for contract & front end
+    pub title: String,
+    /// description of shitstrap for recordkeeping
+    pub description: String,
 }
 
 #[cw_serde]
