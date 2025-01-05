@@ -5,6 +5,8 @@ Shitstrap is a single use contract, for permissionless, non-custodial OTC token 
 ## Description 
 Each shitstrap instance has an owner that will recieve all assets accumulated during a shitstrap. There can be a list of accepted tokens (cw20 & native tokens are supported), each with their own specific `shit_rate`, which is the ratio uses to determine the amount of tokens that will be sent to a shitstrap participant, specific to each token eligible. There is a `cutoff` limit that serves to end a shitstrap, once this amount of tokens is distributed to shitstrap participants. Any excess funds send resulting in the `cutoff` limit to be reached will be able to be redeemed by the rightful participant. 
 
+## Conversion Ratios  
+Each `shit_rate` is focused on how many tokens the contract wil send to the shitstrapper, in exchange for 1 `possible_shit` token. For example, if i would like to accept 2 OSMO for 1 SHITMOS, therefore i would set the `shit_rate` for `"uosmo"` to: `500000000000000000`. We  define the decimal precision to 18. All this means is that a 1:1 conversion can be defined as `1000000000000000000`.
 ## Deployments 
 
 Network | code-id | contract-addr ||

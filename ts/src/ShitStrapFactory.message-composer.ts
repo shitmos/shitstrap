@@ -8,44 +8,42 @@ import { Coin } from "@cosmjs/amino";
 import { MsgExecuteContractEncodeObject } from "cosmwasm";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { Uint128, UncheckedDenom, InstantiateMsg, PossibleShit, ExecuteMsg, Binary, AssetUnchecked, Cw20ReceiveMsg, QueryMsg, Addr, CheckedDenom, Config, Boolean, NullableUint128, NullableArrayOfPossibleShit } from "./ShitStrap.types";
-export interface ShitStrapMessage {
+import { InstantiateMsg, ExecuteMsg, Uint128, UncheckedDenom, Action, Expiration, Timestamp, Uint64, PossibleShit, QueryMsg, ArrayOfShitstrapContract, ShitstrapContract, Addr, OwnershipForAddr } from "./ShitStrapFactory.types";
+export interface ShitStrapFactoryMessage {
   contractAddress: string;
   sender: string;
-  shitStrap: ({
-    shit
+  createNativeShitStrapContract: ({
+    instantiateMsg,
+    label
   }: {
-    shit: AssetUnchecked;
+    instantiateMsg: InstantiateMsg;
+    label: string;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  flush: (funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  receive: ({
-    amount,
-    msg,
-    sender
+  updateCodeId: ({
+    shitstrapCodeId
   }: {
-    amount: Uint128;
-    msg: Binary;
-    sender: string;
+    shitstrapCodeId: number;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  refundShitter: (funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  updateOwnership: (funds?: Coin[]) => MsgExecuteContractEncodeObject;
 }
-export class ShitStrapMessageComposer implements ShitStrapMessage {
+export class ShitStrapFactoryMessageComposer implements ShitStrapFactoryMessage {
   sender: string;
   contractAddress: string;
 
   constructor(sender: string, contractAddress: string) {
     this.sender = sender;
     this.contractAddress = contractAddress;
-    this.shitStrap = this.shitStrap.bind(this);
-    this.flush = this.flush.bind(this);
-    this.receive = this.receive.bind(this);
-    this.refundShitter = this.refundShitter.bind(this);
+    this.createNativeShitStrapContract = this.createNativeShitStrapContract.bind(this);
+    this.updateCodeId = this.updateCodeId.bind(this);
+    this.updateOwnership = this.updateOwnership.bind(this);
   }
 
-  shitStrap = ({
-    shit
+  createNativeShitStrapContract = ({
+    instantiateMsg,
+    label
   }: {
-    shit: AssetUnchecked;
+    instantiateMsg: InstantiateMsg;
+    label: string;
   }, funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -53,35 +51,19 @@ export class ShitStrapMessageComposer implements ShitStrapMessage {
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          shit_strap: {
-            shit
+          create_native_shit_strap_contract: {
+            instantiate_msg: instantiateMsg,
+            label
           }
         })),
         funds
       })
     };
   };
-  flush = (funds?: Coin[]): MsgExecuteContractEncodeObject => {
-    return {
-      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-      value: MsgExecuteContract.fromPartial({
-        sender: this.sender,
-        contract: this.contractAddress,
-        msg: toUtf8(JSON.stringify({
-          flush: {}
-        })),
-        funds
-      })
-    };
-  };
-  receive = ({
-    amount,
-    msg,
-    sender
+  updateCodeId = ({
+    shitstrapCodeId
   }: {
-    amount: Uint128;
-    msg: Binary;
-    sender: string;
+    shitstrapCodeId: number;
   }, funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -89,24 +71,22 @@ export class ShitStrapMessageComposer implements ShitStrapMessage {
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          receive: {
-            amount,
-            msg,
-            sender
+          update_code_id: {
+            shitstrap_code_id: shitstrapCodeId
           }
         })),
         funds
       })
     };
   };
-  refundShitter = (funds?: Coin[]): MsgExecuteContractEncodeObject => {
+  updateOwnership = (funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
       value: MsgExecuteContract.fromPartial({
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          refund_shitter: {}
+          update_ownership: {}
         })),
         funds
       })
