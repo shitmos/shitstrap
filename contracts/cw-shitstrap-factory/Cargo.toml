@@ -1,0 +1,33 @@
+[package]
+name ="cw-shitstrap-factory"
+authors = ["Jake Hartnell"]
+description = "A CosmWasm factory contract for instantiating a payroll contract."
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+version = { workspace = true }
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# for more explicit tests, cargo test --features=backtraces
+backtraces = ["cosmwasm-std/backtraces"]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+[dependencies]
+cosmwasm-std = { workspace = true }
+cosmwasm-schema = { workspace = true }
+cw-shitstrap = { git = "https://github.com/hard-nett/shitstrap", rev = "6de60af656996bf4d851225c2bd0f8f0f9096eed", features = ["library"] }
+cw-denom = { workspace = true }
+cw-ownable = { workspace = true }
+cw-storage-plus = { workspace = true }
+cw2 = { workspace = true }
+cw20 = { workspace = true }
+thiserror = { workspace = true }
+cw-utils = { workspace = true }
+
+[dev-dependencies]
+cw-multi-test = { workspace = true }
+cw20-base = { workspace = true, features = ["library"] }
