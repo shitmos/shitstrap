@@ -11,7 +11,7 @@ use cw_denom::{CheckedDenom, UncheckedDenom};
 use crate::error::ContractError;
 use crate::msg::{AssetUnchecked, ExecuteMsg, InstantiateMsg, PossibleShit, QueryMsg, ReceiveMsg};
 use crate::state::{
-    Config, ATOMINC_DECIMALS, CONFIG, CURRENT_SHITSTRAP_VALUE, REFUND_SHIT, SHITSTRAP_STATE,
+    Config, CONFIG, CURRENT_SHITSTRAP_VALUE, MAX_DEC_PRECISION, REFUND_SHIT, SHITSTRAP_STATE,
 };
 
 // version info for migration info
@@ -22,12 +22,43 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     // set owner
-    let owner = deps.api.addr_validate(&msg.owner)?;
+    let owner = match msg.owner.is_some() {
+        true => deps.api.addr_validate(&msg.owner.unwrap())?,
+        false => info.sender,
+    };
+
+    if msg.cutoff == Uint128::zero() {
+        return Err(ContractError::ShittyCutoffRatio {});
+    }
+    if msg.title.len() > 100usize {
+        return Err(ContractError::ShittyTitle {});
+    }
+    if msg.description.len() > 1000usize {
+        return Err(ContractError::ShittyDescription {});
+    }
+    // set maximum accepted tokens
+    if msg.accepted.len() == 0usize || msg.accepted.len() == 4usize {
+        return Err(ContractError::UnnaceptableShitAmount {});
+    }
+
+    // cannot have identical accepted tokens, or shit_rates that
+    let mut unique_fee = Vec::new();
+    for accepted in msg.accepted.iter() {
+        if unique_fee.contains(&accepted) {
+            return Err(ContractError::SameShit {});
+        } else {
+            unique_fee.push(accepted);
+        }
+        if accepted.shit_rate == Uint128::zero() {
+            return Err(ContractError::ShittyConversionRatio {});
+        };
+    }
+
     let shitmos_addr = msg.shitmos.into_checked(deps.as_ref())?;
     // save contract instance config
     CONFIG.save(
@@ -67,6 +98,11 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
+        // QueryMsg::LeftToShit { shit } => to_json_binary(
+        // // get how many tokens are left to shit
+        // // get conversion rate for token
+        // // return value
+        // ),
         QueryMsg::Config {} => to_json_binary(&CONFIG.load(deps.storage)?),
         QueryMsg::ShitPile {} => to_json_binary(&CURRENT_SHITSTRAP_VALUE.load(deps.storage)?),
         QueryMsg::FullOfShit {} => to_json_binary(&CONFIG.load(deps.storage)?.full_of_shit),
@@ -125,7 +161,6 @@ pub fn execute_shit_strap(
     if config.full_of_shit {
         return Err(ContractError::FullOfShit {});
     }
-
     if let Some(matched) = config
         .accepted
         .clone()
@@ -151,8 +186,8 @@ pub fn execute_shit_strap(
             }
         }
         // defines conversion rate for accepted shit to SHITMOS
-        let shit_value = shit.amount * Decimal::from_atomics(matched.shit_rate, ATOMINC_DECIMALS)?;
-        let received_denom = matched.clone().token.into_checked(deps.as_ref())?;
+        let (shit_value, received_denom) =
+            calculate_shit_value(deps.as_ref(), &matched, shit.amount)?;
 
         let add_count = |prev: Option<Uint128>| -> StdResult<Uint128> {
             prev.unwrap_or_default()
@@ -170,13 +205,8 @@ pub fn execute_shit_strap(
             // new_sv = sv + current - cutoff
             // return assets = sv - new_sv / shit_rate
             // gets the amount of tokens sent after cutoff limit
-            let overflow = new_val.clone() - cutoff.clone();
-
-            // reverse the shit rate calculation to get the exact # of tokens to return
-            let return_to_shitter_amnt: Uint128 = overflow
-                * Decimal::from_atomics(matched.shit_rate, ATOMINC_DECIMALS)?
-                    .inv()
-                    .expect("ahh");
+            let (overflow, return_to_shitter_amnt) =
+                calculate_shit_return(new_val, cutoff, matched.shit_rate)?;
 
             // for each token sent in shitstrap, transfer to dao
             for owned in
@@ -224,7 +254,7 @@ pub fn execute_shit_strap(
                     funds: vec![],
                 }),
             };
-            // push msg to response
+            // push msg to state (overflow needs to flush to redeem any funds overflown)
             REFUND_SHIT.save(deps.storage, shit_strapper.clone(), &msg)?;
 
             // shit-strap is now complete.
@@ -249,6 +279,7 @@ pub fn execute_shit_strap(
     Ok(Response::new().add_messages(msgs).add_attributes(attrs))
 }
 
+/// Entry point to manually set contract to full of shit. Owner only function.
 pub fn execute_flush(deps: DepsMut, sender: Addr) -> Result<Response, ContractError> {
     // only owner can call this
     if sender != CONFIG.load(deps.storage)?.owner {
@@ -296,6 +327,32 @@ fn receive_cw20_message(
     }
 }
 
+/// defines conversion rate for accepted_shit to shit being strapped
+fn calculate_shit_value(
+    deps: Deps,
+    matched: &PossibleShit,
+    eligile_shit_amount: Uint128,
+) -> Result<(Uint128, CheckedDenom), ContractError> {
+    let shit_value =
+        eligile_shit_amount * Decimal::from_atomics(matched.shit_rate, MAX_DEC_PRECISION)?;
+    let received_denom = matched.clone().token.into_checked(deps)?;
+    Ok((shit_value, received_denom))
+}
+
+/// reverses the shit rate calculation to get the exact # of tokens to return
+fn calculate_shit_return(
+    new_val: Uint128,
+    cutoff: Uint128,
+    shit_rate: Uint128,
+) -> Result<(Uint128, Uint128), ContractError> {
+    let overflow = new_val - cutoff;
+    let return_to_shitter_amnt = overflow
+        * Decimal::from_atomics(shit_rate, MAX_DEC_PRECISION)?
+            .inv()
+            .expect("ahh");
+    Ok((overflow, return_to_shitter_amnt))
+}
+
 fn shitstrap_dao(
     recieved: CheckedDenom,
     addr: String,
@@ -321,7 +378,42 @@ fn shitstrap_dao(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use cosmwasm_std::testing::mock_dependencies;
 
     #[test]
-    pub fn test_init() {}
+    pub fn unit_shit_rate() {
+        let deps = mock_dependencies();
+        let matched = PossibleShit {
+            shit_rate: Uint128::from(222222000000000000u128),
+            token: UncheckedDenom::from(UncheckedDenom::Native("test".into())),
+        };
+        let shit_amount = Uint128::from(100100u128);
+
+        let result = calculate_shit_value(deps.as_ref(), &matched, shit_amount).unwrap();
+        assert_eq!(result.0, Uint128::from(22244u128));
+        assert_eq!(result.1, matched.token.into_checked(deps.as_ref()).unwrap());
+    }
+
+    #[test]
+    pub fn unit_shit_return_rate() {
+        let new_val = Uint128::from(100u128);
+        let cutoff = Uint128::from(50u128);
+        let mut shit_rate = Uint128::from(1000000000000000000u128);
+
+        let result = calculate_shit_return(new_val, cutoff, shit_rate).unwrap();
+        // 1:1 conversion
+        assert_eq!(result.0, Uint128::from(50u128));
+        assert_eq!(result.1, Uint128::from(50u128));
+        // .5:1 conversion
+        shit_rate = Uint128::from(500000000000000000u128);
+        let result = calculate_shit_return(new_val, cutoff, shit_rate).unwrap();
+        assert_eq!(result.0, Uint128::from(50u128));
+        assert_eq!(result.1, Uint128::from(100u128));
+        // .222222:1 conversion
+        shit_rate = Uint128::from(222222000000000000u128);
+        let result = calculate_shit_return(new_val, cutoff, shit_rate).unwrap();
+        assert_eq!(result.0, Uint128::from(50u128));
+        assert_eq!(result.1, Uint128::from(225u128));
+    }
 }

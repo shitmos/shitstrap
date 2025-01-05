@@ -7,9 +7,9 @@ use crate::state::Config;
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    /// owner of the shit strap
-    pub owner: String,
-    /// a list of possible accepted assets
+    /// owner of the shit strap. This address will recieve all shit sent for this shitstrap.
+    pub owner: Option<String>,
+    /// a list of possible accepted assets, and the shit_rate you would like to set for.
     pub accepted: Vec<PossibleShit>,
     /// Desired cutoff points for shitstrap. 1000000 == 1 token.
     pub cutoff: Uint128,
@@ -53,12 +53,15 @@ pub enum QueryMsg {
     #[returns(bool)]
     /// Query if the shit strap contract is no longer active
     FullOfShit {},
+    #[returns(Uint128)]
     /// Query the shit conversation ratio for a given asset
     #[returns(Option<Uint128>)]
     ShitRate { asset: String },
     /// Query the shit conversation ratio for a given asset
     #[returns(Option<Vec<PossibleShit>>)]
     ShitRates {},
+    // /// Query maximum token to be able to send before shitstrap will become full of shit.
+    // LeftToShit { shit: String },
 }
 
 #[cw_serde]
@@ -81,7 +84,9 @@ pub struct PossibleShit {
     /// Generic type for contract address or token included in shitstrap.
     pub token: UncheckedDenom,
     /// Atomic unit value for conversion ratio with shitmos.\
-    /// *(1000000 == 1:1 coversion ratio || 500000 ==  0.5 == half as much shitmos sent as asset recieved)*
+    /// * 1000000000000000000 == 1:1 coversion ratio\
+    /// *  500000000000000000 ==  0.5
+    /// 
     pub shit_rate: Uint128,
 }
 

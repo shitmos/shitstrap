@@ -28,6 +28,24 @@ pub enum ContractError {
     #[error("Unauthorized")]
     ShittyAuthorization {},
 
+    #[error("you are trying to set identical accepted_shit values. Try again with unique accepted_shit")]
+    SameShit {},
+
+    #[error("You are trying to set too much shit to be accepted for this shitstrap.")]
+    UnnaceptableShitAmount {},
+
+    #[error("Cannot set cutoff as 0")]
+    ShittyCutoffRatio {},
+    
+    #[error("Cannot set conversion ratio as 0")]
+    ShittyConversionRatio {},
+    
+    #[error("Shitstrap title set for too long")]
+    ShittyTitle {},
+    
+    #[error("Shitstrap title set for too long")]
+    ShittyDescription {},
+
     #[error("You are trying to participate with a cw20. use the Cw20RecieveMsg.")]
     ShittyCw20{},
     // Add any other custom errors you like here.

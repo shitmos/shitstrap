@@ -1,12 +1,13 @@
 use cosmwasm_std::{coin, to_json_binary, Addr, Decimal, Empty, Uint128};
 use cw20::{Cw20Coin, Cw20ReceiveMsg};
 use cw20_base::msg::InstantiateMsg as Cw20Init;
+use cw_denom::UncheckedDenom;
 use cw_multi_test::{App, AppResponse, BankSudo, Contract, ContractWrapper, Executor, SudoMsg};
 use cw_orch::anyhow::{self, Error};
 
 use crate::{
     msg::{AssetUnchecked, InstantiateMsg, PossibleShit, ReceiveMsg},
-    state::ATOMINC_DECIMALS,
+    state::MAX_DEC_PRECISION,
     ContractError,
 };
 
@@ -99,7 +100,7 @@ fn default_init(possible: Vec<PossibleShit>, cutoff: u128) -> ShitSuite {
     };
     // create shitstrap
     let init = InstantiateMsg {
-        owner: OWNER.into(),
+        owner: Some(OWNER.to_string()),
         accepted: possible,
         cutoff: cutoff.into(),
         shitmos: cw_denom::UncheckedDenom::Native("ushit".into()),
@@ -192,10 +193,138 @@ impl ShitSuite {
 }
 
 #[test]
-fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
+fn test_bad_init() -> cw_orch::anyhow::Result<(), Error> {
+    let mut possible = vec![
+        PossibleShit::native_denom("uatom", 1_000_000u128),
+        PossibleShit::native_denom("uatom", 1_000_000u128),
+        PossibleShit::native_denom("uatom3", 0u128),
+        PossibleShit::native_denom("uatom4", 1_000_000u128),
+    ];
+
+    let title = "a".repeat(101).into();
+    let description = "y".repeat(1001).into();
+    let cutoff = Uint128::zero();
+
+    let mut init_msg = InstantiateMsg {
+        owner: Some(OWNER.to_string()),
+        accepted: possible.clone(),
+        cutoff: cutoff.into(),
+        shitmos: cw_denom::UncheckedDenom::Native("ushit".into()),
+        title,
+        description,
+    };
     // create default testing suite
     let mut shit = default_init(
         vec![PossibleShit::native_denom("uatom", 1_000_000u128)], // 1:1 ratio
+        222u128,
+    );
+    // init shitstrap
+    let err = shit
+        .app
+        .instantiate_contract(
+            2,
+            Addr::unchecked(OWNER),
+            &init_msg.clone(),
+            &[],
+            "shitstrap",
+            Some(OWNER.into()),
+        )
+        .unwrap_err();
+    assert_eq!(ContractError::ShittyCutoffRatio {}, err.downcast().unwrap());
+    init_msg.cutoff = Uint128::from(1_000_000u128);
+    let err = shit
+        .app
+        .instantiate_contract(
+            2,
+            Addr::unchecked(OWNER),
+            &init_msg.clone(),
+            &[],
+            "shitstrap",
+            Some(OWNER.into()),
+        )
+        .unwrap_err();
+    assert_eq!(ContractError::ShittyTitle {}, err.downcast().unwrap());
+    init_msg.title = "shitstrap".into();
+    let err = shit
+        .app
+        .instantiate_contract(
+            2,
+            Addr::unchecked(OWNER),
+            &init_msg.clone(),
+            &[],
+            "shitstrap",
+            Some(OWNER.into()),
+        )
+        .unwrap_err();
+    assert_eq!(ContractError::ShittyDescription {}, err.downcast().unwrap());
+    init_msg.description = "shitstrap description".into();
+    let err = shit
+        .app
+        .instantiate_contract(
+            2,
+            Addr::unchecked(OWNER),
+            &init_msg.clone(),
+            &[],
+            "shitstrap",
+            Some(OWNER.into()),
+        )
+        .unwrap_err();
+    assert_eq!(
+        ContractError::UnnaceptableShitAmount {},
+        err.downcast().unwrap()
+    );
+    possible = possible[..possible.len() - 1].to_vec();
+    init_msg.accepted = possible.clone();
+    let err = shit
+        .app
+        .instantiate_contract(
+            2,
+            Addr::unchecked(OWNER),
+            &init_msg.clone(),
+            &[],
+            "shitstrap",
+            Some(OWNER.into()),
+        )
+        .unwrap_err();
+    assert_eq!(ContractError::SameShit {}, err.downcast().unwrap());
+    possible[1].token = UncheckedDenom::Native("uatom2".into());
+    init_msg.accepted = possible.clone();
+    let err = shit
+        .app
+        .instantiate_contract(
+            2,
+            Addr::unchecked(OWNER),
+            &init_msg.clone(),
+            &[],
+            "shitstrap",
+            Some(OWNER.into()),
+        )
+        .unwrap_err();
+    assert_eq!(
+        ContractError::ShittyConversionRatio {},
+        err.downcast().unwrap()
+    );
+    possible[2].shit_rate = Uint128::one();
+    init_msg.accepted = possible;
+    shit.app
+        .instantiate_contract(
+            2,
+            Addr::unchecked(OWNER),
+            &init_msg.clone(),
+            &[],
+            "shitstrap",
+            Some(OWNER.into()),
+        )
+        .unwrap();
+
+    Ok(())
+}
+
+#[test]
+fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
+    // create default testing suite
+    let mut shit = default_init(
+        vec![PossibleShit::native_denom("uatom", 1000000000000000000u128)], // 1:1 ratio
         222u128,
     );
     // deposit 1 less than max
@@ -281,7 +410,7 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
         },
     )?;
     // calulate expected
-    let calculated = balance.amount * Decimal::from_atomics(shit_rate.unwrap(), ATOMINC_DECIMALS)?;
+    let calculated = balance.amount * Decimal::from_atomics(shit_rate.unwrap(), MAX_DEC_PRECISION)?;
     assert_eq!(calculated, Uint128::from(first_deposit));
 
     // shitstrap reaches limit
@@ -352,9 +481,10 @@ fn test_shitstrap() -> cw_orch::anyhow::Result<(), Error> {
 #[test]
 fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Error> {
     // create testing suite
-    let first_deposit = 100_000_000u128;
-    let cw20_shit_ratio = 640000u64;
-    let atom_shit_ratio = 360000u64;
+    let first_deposit = 100_000_000u128; // 100
+    let cw20_shit_ratio = Uint128::from(640000000000000000u128); // 64%
+
+    let atom_shit_ratio = Uint128::from(360000000000000000u128); // 36%
 
     let mut shit = default_init(
         vec![
@@ -439,7 +569,7 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
         .query_wasm_smart(shitstrap.clone(), &crate::msg::QueryMsg::ShitPile {})?;
     assert_eq!(
         res,
-        Uint128::new(first_deposit) * Decimal::from_atomics(atom_shit_ratio, ATOMINC_DECIMALS)?
+        Uint128::new(first_deposit) * Decimal::from_atomics(atom_shit_ratio, MAX_DEC_PRECISION)?
     );
     // confirm funds made it to shitter
     let res = shit.app.wrap().query_all_balances(SHITTER1)?;
@@ -449,7 +579,7 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
             coin(DEFAULT_BALANCE - first_deposit, "uatom"),
             coin(
                 (Uint128::new(first_deposit)
-                    * Decimal::from_atomics(atom_shit_ratio, ATOMINC_DECIMALS)?)
+                    * Decimal::from_atomics(atom_shit_ratio, MAX_DEC_PRECISION)?)
                 .u128(),
                 "ushit"
             )
@@ -467,8 +597,9 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
 
     // the expected shit_strapped, after 2 participants
     let expected = (Uint128::new(first_deposit)
-        * Decimal::from_atomics(cw20_shit_ratio, ATOMINC_DECIMALS)?)
-        + (Uint128::new(first_deposit) * Decimal::from_atomics(atom_shit_ratio, ATOMINC_DECIMALS)?);
+        * Decimal::from_atomics(cw20_shit_ratio, MAX_DEC_PRECISION)?)
+        + (Uint128::new(first_deposit)
+            * Decimal::from_atomics(atom_shit_ratio, MAX_DEC_PRECISION)?);
 
     assert_eq!(res, expected);
 
@@ -479,14 +610,14 @@ fn test_mult_participants_mult_possible_shit() -> cw_orch::anyhow::Result<(), Er
         vec![
             coin(
                 (Uint128::new(first_deposit)
-                    * Decimal::from_atomics(cw20_shit_ratio, ATOMINC_DECIMALS)?)
+                    * Decimal::from_atomics(cw20_shit_ratio, MAX_DEC_PRECISION)?)
                 .u128(),
                 "ushit"
             ),
             coin(DEFAULT_BALANCE, "usilk"), // has full balance of non accepted token
         ]
     );
-    // we skip checking cw20 balance in this test, as we simulate the contract callling headstash.
+    // we skip checking cw20 balance in this test, done in next step.
     Ok(())
 }
 
@@ -539,5 +670,6 @@ fn test_cw20_receive() -> anyhow::Result<(), Error> {
         .unwrap_err();
 
     assert_eq!(ContractError::WrongShit {}, err.downcast().unwrap());
+
     Ok(())
 }

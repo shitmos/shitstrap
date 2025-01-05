@@ -6,6 +6,7 @@ use cw_storage_plus::{Item, Map};
 use crate::msg::PossibleShit;
 
 pub const ATOMINC_DECIMALS: u32 = 6u32;
+pub const MAX_DEC_PRECISION: u32 = 18u32;
 
 #[cw_serde]
 pub struct Config {
@@ -20,5 +21,8 @@ pub struct Config {
 
 pub const CONFIG: Item<Config> = Item::new("s");
 pub const CURRENT_SHITSTRAP_VALUE: Item<Uint128> = Item::new("h");
-pub const REFUND_SHIT: Map<Addr, CosmosMsg> = Map::new("i");
+/// amount of token recieved during shitstrap, map key of the token denom
 pub const SHITSTRAP_STATE: Map<String, Uint128> = Map::new("t");
+
+// msg formed to return overflow of a sender 
+pub const REFUND_SHIT: Map<Addr, CosmosMsg> = Map::new("i");
