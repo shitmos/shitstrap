@@ -72,10 +72,10 @@ pub fn execute_instantiate_native_shitstrap_contract(
     instantiate_contract(deps, info.sender, Some(info.funds), instantiate_msg, label)
 }
 
-/// `sender` here refers to the initiator of the vesting, not the
+/// `sender` here refers to the initiator of the shistrap, not the
 /// literal sender of the message. Practically speaking, this means
 /// that it should be set to the sender of the cw20's being vested,
-/// and not the cw20 contract when dealing with non-native vesting.
+/// and not the cw20 contract when dealing with non-native shistrap.
 pub fn instantiate_contract(
     deps: DepsMut,
     sender: Addr,
@@ -97,7 +97,7 @@ pub fn instantiate_contract(
 
     // Instantiate the specified contract with owner as the admin.
     let instantiate = WasmMsg::Instantiate {
-        admin: Some(instantiate_msg.owner.clone()),
+        admin: instantiate_msg.owner.clone(),
         code_id,
         msg: to_json_binary(&instantiate_msg)?,
         funds: funds.unwrap_or_default(),
@@ -107,7 +107,7 @@ pub fn instantiate_contract(
     let msg = SubMsg::reply_on_success(instantiate, INSTANTIATE_CONTRACT_REPLY_ID);
 
     Ok(Response::default()
-        .add_attribute("action", "instantiate_cw_vesting")
+        .add_attribute("action", "instantiate_cw_shistrap")
         .add_submessage(msg))
 }
 
@@ -124,13 +124,13 @@ pub fn execute_update_owner(
 pub fn execute_update_code_id(
     deps: DepsMut,
     info: MessageInfo,
-    vesting_code_id: u64,
+    shistrap_code_id: u64,
 ) -> Result<Response, ContractError> {
     cw_ownable::assert_owner(deps.storage, &info.sender)?;
-    SHITSTRAP_CODE_ID.save(deps.storage, &vesting_code_id)?;
+    SHITSTRAP_CODE_ID.save(deps.storage, &shistrap_code_id)?;
     Ok(Response::default()
         .add_attribute("action", "update_code_id")
-        .add_attribute("vesting_code_id", vesting_code_id.to_string()))
+        .add_attribute("shistrap_code_id", shistrap_code_id.to_string()))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -263,14 +263,14 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
             let res = parse_reply_instantiate_data(msg)?;
             let contract_addr = deps.api.addr_validate(&res.contract_address)?;
 
-            // Query new vesting payment contract for info
+            // Query new shistrap payment contract for info
             let shit_strap: ShitstrapConfig = deps
                 .querier
                 .query_wasm_smart(contract_addr.clone(), &ShitstrapQueryMsg::Config {})?;
 
             let instantiator = TMP_INSTANTIATOR_INFO.load(deps.storage)?;
 
-            // Save vesting contract payment info
+            // Save shistrap contract payment info
             shitstrap_contracts().save(
                 deps.storage,
                 contract_addr.as_ref(),

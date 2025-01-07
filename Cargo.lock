@@ -461,24 +461,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cw-shitstrap"
-version = "0.1.0"
-source = "git+https://github.com/hard-nett/shitstrap?rev=6de60af656996bf4d851225c2bd0f8f0f9096eed#6de60af656996bf4d851225c2bd0f8f0f9096eed"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-denom",
- "cw-orch",
- "cw-storage-plus",
- "cw2",
- "cw20",
- "cw20-base",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
 name = "cw-shitstrap-factory"
 version = "0.1.0"
 dependencies = [
@@ -487,7 +469,7 @@ dependencies = [
  "cw-denom",
  "cw-multi-test",
  "cw-ownable",
- "cw-shitstrap 0.1.0 (git+https://github.com/hard-nett/shitstrap?rev=6de60af656996bf4d851225c2bd0f8f0f9096eed)",
+ "cw-shitstrap",
  "cw-storage-plus",
  "cw-utils",
  "cw2",

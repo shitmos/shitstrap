@@ -19,7 +19,7 @@ library = []
 [dependencies]
 cosmwasm-std = { workspace = true }
 cosmwasm-schema = { workspace = true }
-cw-shitstrap = { git = "https://github.com/hard-nett/shitstrap", rev = "6de60af656996bf4d851225c2bd0f8f0f9096eed", features = ["library"] }
+cw-shitstrap = { path = "../cw-shitstrap", features = ["library"] }
 cw-denom = { workspace = true }
 cw-ownable = { workspace = true }
 cw-storage-plus = { workspace = true }
