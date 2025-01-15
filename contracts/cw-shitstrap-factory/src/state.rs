@@ -18,7 +18,7 @@ pub struct TokenIndexes<'a> {
     pub shit: MultiIndex<'a, String, ShitstrapContract, String>,
 }
 
-impl<'a> IndexList<ShitstrapContract> for TokenIndexes<'a> {
+impl IndexList<ShitstrapContract> for TokenIndexes<'_> {
     fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<ShitstrapContract>> + '_> {
         let v: Vec<&dyn Index<ShitstrapContract>> = vec![&self.instantiator, &self.shit];
         Box::new(v.into_iter())

@@ -24,5 +24,5 @@ pub const CURRENT_SHITSTRAP_VALUE: Item<Uint128> = Item::new("h");
 /// amount of token recieved during shitstrap, map key of the token denom
 pub const SHITSTRAP_STATE: Map<String, Uint128> = Map::new("t");
 
-// msg formed to return overflow of a sender 
+// msg formed to return overflow of a sender
 pub const REFUND_SHIT: Map<Addr, CosmosMsg> = Map::new("i");

@@ -86,7 +86,7 @@ pub struct PossibleShit {
     /// Atomic unit value for conversion ratio with shitmos.\
     /// * 1000000000000000000 == 1:1 coversion ratio\
     /// *  500000000000000000 ==  0.5
-    /// 
+    ///
     pub shit_rate: Uint128,
 }
 

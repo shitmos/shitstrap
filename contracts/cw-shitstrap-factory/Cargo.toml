@@ -1,11 +1,9 @@
 [package]
 name ="cw-shitstrap-factory"
+version = "0.1.0"
 authors = ["Jake Hartnell"]
 description = "A CosmWasm factory contract for instantiating a payroll contract."
-edition = { workspace = true }
-license = { workspace = true }
-repository = { workspace = true }
-version = { workspace = true }
+edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

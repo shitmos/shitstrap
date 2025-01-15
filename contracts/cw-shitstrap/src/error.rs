@@ -9,7 +9,7 @@ pub enum ContractError {
 
     #[error("{0}")]
     ShitDenomError(#[from] DenomError),
-    
+
     #[error("{0}")]
     DecimalRangeExceeded(#[from] DecimalRangeExceeded),
 
@@ -21,14 +21,16 @@ pub enum ContractError {
 
     #[error("Did Not Send Shit, Liar.")]
     DidntSendShit {},
-    
+
     #[error("Unable to claim refund")]
     DigginForShitTreasure {},
-    
+
     #[error("Unauthorized")]
     ShittyAuthorization {},
 
-    #[error("you are trying to set identical accepted_shit values. Try again with unique accepted_shit")]
+    #[error(
+        "you are trying to set identical accepted_shit values. Try again with unique accepted_shit"
+    )]
     SameShit {},
 
     #[error("You are trying to set too much shit to be accepted for this shitstrap.")]
@@ -36,18 +38,18 @@ pub enum ContractError {
 
     #[error("Cannot set cutoff as 0")]
     ShittyCutoffRatio {},
-    
+
     #[error("Cannot set conversion ratio as 0")]
     ShittyConversionRatio {},
-    
+
     #[error("Shitstrap title set for too long")]
     ShittyTitle {},
-    
+
     #[error("Shitstrap title set for too long")]
     ShittyDescription {},
 
     #[error("You are trying to participate with a cw20. use the Cw20RecieveMsg.")]
-    ShittyCw20{},
+    ShittyCw20 {},
     // Add any other custom errors you like here.
     // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
 }

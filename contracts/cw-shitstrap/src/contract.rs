@@ -42,7 +42,7 @@ pub fn instantiate(
         return Err(ContractError::ShittyDescription {});
     }
     // set maximum accepted tokens
-    if msg.accepted.len() == 0usize || msg.accepted.len() == 4usize {
+    if msg.accepted.is_empty() || msg.accepted.len() == 4usize {
         return Err(ContractError::UnnaceptableShitAmount {});
     }
 
@@ -111,7 +111,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
                 .load(deps.storage)?
                 .accepted
                 .into_iter()
-                .map(|c| match c.token {
+                .filter_map(|c| match c.token {
                     UncheckedDenom::Native(n) => {
                         if n == asset.clone() {
                             Some(c.shit_rate)
@@ -127,8 +127,6 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
                         }
                     }
                 })
-                .into_iter()
-                .flatten()
                 .next(),
         ),
         QueryMsg::ShitRates { .. } => {
@@ -169,11 +167,11 @@ pub fn execute_shit_strap(
     {
         match matched.token.clone() {
             UncheckedDenom::Native(t) => {
-                if !info
+                if info
                     .funds
                     .into_iter()
                     .find(|c| c.denom == t)
-                    .is_some_and(|c| c.amount == shit.amount)
+                    .is_none_or(|c| c.amount != shit.amount)
                 {
                     return Err(ContractError::DidntSendShit {});
                 }
@@ -194,14 +192,14 @@ pub fn execute_shit_strap(
                 .checked_add(Uint128::new(shit.amount.u128()))
                 .map_err(StdError::overflow)
         };
-        SHITSTRAP_STATE.update(deps.storage, received_denom.to_string(), &add_count)?;
+        SHITSTRAP_STATE.update(deps.storage, received_denom.to_string(), add_count)?;
 
         // if new_val > or = cutoff,
         // any excess funds sent are able to be claimed by sender.
-        let new_val = shit_value + current_shit_value.clone();
-        let cutoff = config.cutoff.clone();
+        let new_val = shit_value + current_shit_value;
+        let cutoff = config.cutoff;
 
-        if new_val.clone() >= cutoff.clone() {
+        if new_val >= cutoff {
             // new_sv = sv + current - cutoff
             // return assets = sv - new_sv / shit_rate
             // gets the amount of tokens sent after cutoff limit
@@ -265,7 +263,7 @@ pub fn execute_shit_strap(
         // form SHITMOS transfer msg.
         let send_shitmos = config
             .shitmos_addr
-            .get_transfer_to_message(&shit_strapper, shit_value.into())?;
+            .get_transfer_to_message(&shit_strapper, shit_value)?;
 
         // update internal shitstrap value, & save asset-specific shit strap state.
         CURRENT_SHITSTRAP_VALUE.save(deps.storage, &new_val)?;
@@ -369,7 +367,7 @@ fn shitstrap_dao(
             contract_addr: addr.to_string(),
             msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
                 recipient: dao.to_string(),
-                amount: amount.into(),
+                amount,
             })?,
             funds: vec![],
         })),
