@@ -1,43 +1,41 @@
-[package]
-name = "cw-shit-strap"
-version = "0.1.0"
-authors = ["hard-nett <hardnettt@proton.me>"]
+[workspace]
+name = "cw-shitstrap"
+exclude = [ ]
+members =  [
+  "contracts/cw-shitstrap",
+  "contracts/cw-shitstrap-factory",
+]
+resolver = "2"
+
+[workspace.package]
+license = "BSD-3-Clause"
+repository = "https://github.com/shitmos/shitstrap"
 edition = "2021"
+resolver = "2"
+version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[lib]
-crate-type = ["cdylib", "rlib"]
 
 [profile.release]
-opt-level = 3
-debug = false
-rpath = false
-lto = true
-debug-assertions = false
 codegen-units = 1
-panic = 'abort'
+debug = false
+debug-assertions = false
 incremental = false
+lto = true
+opt-level = 3
+panic = 'abort'
+rpath = false
+# Please do not disable these. Doing so will cause overflow checks in
+# all workspace members to stop working. Overflows should be errors.
 overflow-checks = true
 
-[features]
-# use library feature to disable all instantiate/execute/query exports
-library = []
 
-[package.metadata.scripts]
-optimize = """docker run --rm -v "$(pwd)":/code \
-  --mount type=volume,source="$(basename "$(pwd)")_cache",target=/target \
-  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
-  cosmwasm/optimizer:0.15.0
-"""
 
-[dependencies]
+
+[workspace.dependencies]
 cosmwasm-schema = "1.5.2"
-cosmwasm-std = { version = "1.5.2", features = [
-  "cosmwasm_1_4",
-  # Enable this if you only deploy to chains that have CosmWasm 2.0 or higher
-  # "cosmwasm_2_0",
-] }
+cosmwasm-std = { version = "1.5.2" }
 cw-storage-plus = "1.2.0"
 cw2 = "1.1.2"
 cw20 = "1.1.2"
@@ -47,6 +45,6 @@ cw-denom = "2.4.0"
 schemars = "0.8.16"
 serde = { version = "1.0.197", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.58" }
-
-[dev-dependencies]
 cw-multi-test = "1.2.0"
+cw-utils = "1.0"
+cw-ownable = "0.5"
