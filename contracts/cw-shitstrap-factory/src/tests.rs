@@ -238,7 +238,7 @@ pub fn test_instantiate_cw20_payroll_contract() {
 
     let instantiate = InstantiateMsg {
         owner: Some(ALICE.to_string()),
-        vesting_code_id: cw_vesting_code_id,
+        shitstrap_id: cw_vesting_code_id,
     };
     let factory_addr = app
         .instantiate_contract(
@@ -367,7 +367,7 @@ fn test_instantiate_wrong_ownership_native() {
     // is alice or none and the sender is alice.
     let instantiate = InstantiateMsg {
         owner: Some(ALICE.to_string()),
-        vesting_code_id: cw_vesting_code_id,
+        shitstrap_id: cw_vesting_code_id,
     };
     let factory_addr = app
         .instantiate_contract(
@@ -419,7 +419,7 @@ fn test_update_vesting_code_id() {
     // Instantiate factory with only Alice allowed to instantiate payroll contracts
     let instantiate = InstantiateMsg {
         owner: Some(ALICE.to_string()),
-        vesting_code_id: cw_vesting_code_id,
+        shitstrap_id: cw_vesting_code_id,
     };
     let factory_addr = app
         .instantiate_contract(
@@ -437,7 +437,7 @@ fn test_update_vesting_code_id() {
         Addr::unchecked(ALICE),
         factory_addr.clone(),
         &ExecuteMsg::UpdateCodeId {
-            vesting_code_id: cw_vesting_code_two,
+            shitstrap_code_id: cw_vesting_code_two,
         },
         &[],
     )
@@ -448,7 +448,7 @@ fn test_update_vesting_code_id() {
             Addr::unchecked(BOB),
             factory_addr.clone(),
             &ExecuteMsg::UpdateCodeId {
-                vesting_code_id: cw_vesting_code_two,
+                shitstrap_code_id: cw_vesting_code_two,
             },
             &[],
         )
@@ -537,7 +537,7 @@ pub fn test_inconsistent_cw20_amount() {
         .unwrap();
     let instantiate = InstantiateMsg {
         owner: Some(ALICE.to_string()),
-        vesting_code_id: cw_vesting_code_id,
+        shitstrap_id: cw_vesting_code_id,
     };
     let factory_addr = app
         .instantiate_contract(

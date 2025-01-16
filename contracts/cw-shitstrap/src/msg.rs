@@ -49,7 +49,11 @@ pub enum QueryMsg {
     #[returns(Uint128)]
     /// Current amount of shit value that has been deposited in the shit-strap.
     /// Can be used to calculate how much more is needed for a full-of-shit status.
-    ShitPile {},
+    HasShit {},
+    #[returns(Uint128)]
+    /// Current amount of shit value that still is to be shit by the shitstrap.
+    #[returns(Uint128)]
+    ToShit {},
     #[returns(bool)]
     /// Query if the shit strap contract is no longer active
     FullOfShit {},

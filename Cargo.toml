@@ -5,6 +5,7 @@ members =  [
   "contracts/cw-shitstrap",
   "contracts/cw-shitstrap-factory",
 ]
+resolver = "2"
 
 [workspace.package]
 license = "BSD-3-Clause"
